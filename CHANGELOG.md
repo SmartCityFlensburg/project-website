@@ -9,17 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- feat: add favicons
-- feat: add stakeholder section as slider
-- feat: add faq section
-- feat: add header
-- feat: add footer
-- feat: update tailwind config and add fonts
-- ci: add workflow to test build
+- feat: add favicons (#31)
+- feat: add stakeholder section as slider (#26)
+- feat: add faq section (#24)
+- feat: add header (#22)
+- feat: add footer (#17)
+- ci: add workflow to test build (#20)
 
 ### Changed
 
-- docs: update README
+- docs: update README (#25)
+- feat: update tailwind config and add fonts (#15)
 - Improve CI/CD pipeline for deployment, staging and production
 
 ## [v0.0.1] - 2024-05-26

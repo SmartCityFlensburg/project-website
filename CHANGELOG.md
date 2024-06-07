@@ -7,9 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- feat: add favicons
+- feat: add stakeholder section as slider
+- feat: add faq section
+- feat: add header
+- feat: add footer
+- feat: update tailwind config and add fonts
+- ci: add workflow to test build
+
 ### Changed
 
--   Improve CI/CD pipeline for deployment, staging and production
+- docs: update README
+- Improve CI/CD pipeline for deployment, staging and production
 
 ## [v0.0.1] - 2024-05-26
 

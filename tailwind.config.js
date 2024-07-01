@@ -72,6 +72,12 @@ export default {
         animation: {
             'move': 'move 35s linear infinite',
         },
+        transitionDelay: {
+            '1500': '1500ms',
+        },
+        transitionDuration: {
+            '1500': '1500ms',
+        }
     },
   },
   plugins: [],

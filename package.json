@@ -23,7 +23,7 @@
     "@splidejs/react-splide": "^0.7.12",
     "astro": "^7.3.2",
     "lottie-react": "^2.4.1",
-    "lucide-react": "^1.41.0",
+    "lucide-react": "^1.45.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-player": "^3.4.0",

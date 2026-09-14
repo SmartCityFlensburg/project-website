@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 540" width="1200" height="540" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" role="img">
+<rect width="1200" height="540" fill="#fcfcfb"/>
+<text x="78" y="46" font-size="27" font-weight="600" fill="#0b0b0b">Oben trocken, unten feucht: dieselbe Eiche, zwei Tiefen</text>
+<text x="78" y="72" font-size="14.5" fill="#52514e">Bodenfeuchte an der Eiche am Sophienhof, Tagesmittel in 40 und 80 cm Tiefe. Wer nur oberflächennah messen würde,</text>
+<text x="78" y="91" font-size="14.5" fill="#52514e">hätte diesen Standort den ganzen Sommer für kritisch gehalten.</text>
+<line x1="78" y1="432.4" x2="992" y2="432.4" stroke="#e6e5e1" stroke-width="1"/>
+<text x="68" y="436.4" font-size="13" fill="#52514e" text-anchor="end">5</text>
+<line x1="78" y1="364.2" x2="992" y2="364.2" stroke="#e6e5e1" stroke-width="1"/>
+<text x="68" y="368.2" font-size="13" fill="#52514e" text-anchor="end">10</text>
+<line x1="78" y1="296.0" x2="992" y2="296.0" stroke="#e6e5e1" stroke-width="1"/>
+<text x="68" y="300.0" font-size="13" fill="#52514e" text-anchor="end">15</text>
+<line x1="78" y1="227.8" x2="992" y2="227.8" stroke="#e6e5e1" stroke-width="1"/>
+<text x="68" y="231.8" font-size="13" fill="#52514e" text-anchor="end">20</text>
+<line x1="78" y1="159.6" x2="992" y2="159.6" stroke="#e6e5e1" stroke-width="1"/>
+<text x="68" y="163.6" font-size="13" fill="#52514e" text-anchor="end">25</text>
+<text x="78" y="132" font-size="13" fill="#52514e">Bodenfeuchte (Vol.-%)</text>
+<path d="M247.3,240.1 L255.7,240.1 L281.1,240.1 L289.6,240.1 L298.0,240.8 L315.0,240.8 L323.4,240.1 L340.4,240.1 L348.8,240.1 L357.3,240.1 L365.7,240.8 L382.7,240.1 L399.6,241.5 L408.1,241.5 L416.5,242.8 L425.0,242.8 L433.4,241.5 L441.9,242.8 L458.8,242.8 L467.3,210.1 L475.8,211.5 L484.2,212.8 L492.7,214.2 L501.1,212.8 L509.6,212.8 L518.1,214.2 L526.5,222.4 L535.0,225.1 L543.5,212.8 L560.4,214.9 L568.9,218.3 L577.3,221.7 L585.8,225.1 L594.2,227.8 L602.7,230.5 L611.2,229.2 L619.6,230.5 L628.1,230.5 L636.6,229.2 L645.0,229.2 L653.5,222.4 L661.9,221.7 L670.4,223.7 L678.9,225.1 L687.3,231.2 L695.8,234.6 L704.3,211.5 L712.7,216.9 L721.2,224.4 L729.6,229.2 L738.1,233.3 L746.6,236.7 L755.0,237.4 L763.5,215.5 L772.0,214.2 L780.4,211.5 L788.9,204.6 L805.8,207.4 L814.3,211.5 L822.7,211.5 L831.2,219.0 L839.7,222.4 L848.1,224.4 L856.6,225.1 L865.1,221.0 L873.5,221.0 L882.0,210.8 L890.4,211.5 L898.9,211.5 L907.4,200.5 L924.3,201.2 L932.8,201.9 L941.2,201.9 L949.7,199.2 L966.6,195.1 L975.1,196.5 L983.5,197.8" fill="none" stroke="#14406e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M247.3,373.0 L255.7,372.4 L281.1,373.7 L289.6,373.7 L298.0,373.7 L315.0,375.8 L323.4,378.5 L340.4,397.6 L348.8,394.2 L357.3,391.5 L365.7,396.9 L382.7,398.3 L399.6,392.1 L408.1,395.5 L416.5,403.7 L425.0,399.6 L433.4,394.9 L441.9,391.5 L458.8,388.7 L467.3,276.9 L475.8,297.4 L484.2,312.4 L492.7,335.5 L501.1,320.5 L509.6,316.5 L518.1,321.9 L526.5,346.5 L535.0,350.5 L543.5,321.9 L560.4,326.0 L568.9,331.5 L577.3,370.3 L585.8,364.2 L594.2,362.1 L602.7,366.2 L611.2,364.2 L619.6,366.9 L628.1,368.3 L636.6,366.9 L645.0,364.2 L653.5,324.0 L661.9,324.0 L670.4,336.9 L678.9,345.1 L687.3,364.9 L695.8,372.4 L704.3,312.4 L712.7,327.4 L721.2,349.2 L729.6,364.2 L738.1,373.0 L746.6,379.9 L755.0,383.3 L763.5,298.7 L772.0,291.2 L780.4,315.1 L788.9,313.7 L805.8,338.3 L814.3,335.5 L822.7,336.9 L831.2,347.8 L839.7,356.7 L848.1,360.8 L856.6,364.2 L865.1,373.7 L873.5,377.8 L882.0,364.2 L890.4,373.7 L898.9,383.3 L907.4,331.5 L924.3,357.4 L932.8,375.1 L941.2,377.1 L949.7,354.6 L966.6,360.1 L975.1,372.4 L983.5,373.7" fill="none" stroke="#4e97dd" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="983.5" cy="197.8" r="4" fill="#14406e" stroke="#fcfcfb" stroke-width="2"/>
+<line x1="989.5" y1="197.8" x2="1004" y2="197.8" stroke="#14406e" stroke-width="1" opacity="0.45"/>
+<rect x="1008" y="192.8" width="9" height="9" rx="2" fill="#14406e"/>
+<text x="1022" y="201.8" font-size="13" fill="#0b0b0b">80 cm Tiefe</text>
+<circle cx="983.5" cy="373.7" r="4" fill="#4e97dd" stroke="#fcfcfb" stroke-width="2"/>
+<line x1="989.5" y1="373.7" x2="1004" y2="373.7" stroke="#4e97dd" stroke-width="1" opacity="0.45"/>
+<rect x="1008" y="368.7" width="9" height="9" rx="2" fill="#4e97dd"/>
+<text x="1022" y="377.7" font-size="13" fill="#0b0b0b">40 cm Tiefe</text>
+<line x1="78" y1="446" x2="992" y2="446" stroke="#52514e" stroke-width="1"/>
+<line x1="103.4" y1="446" x2="103.4" y2="452" stroke="#52514e" stroke-width="1"/>
+<text x="103.4" y="470.0" font-size="13" fill="#52514e" text-anchor="middle">Juni</text>
+<line x1="357.3" y1="446" x2="357.3" y2="452" stroke="#52514e" stroke-width="1"/>
+<text x="357.3" y="470.0" font-size="13" fill="#52514e" text-anchor="middle">Juli</text>
+<line x1="619.6" y1="446" x2="619.6" y2="452" stroke="#52514e" stroke-width="1"/>
+<text x="619.6" y="470.0" font-size="13" fill="#52514e" text-anchor="middle">Aug.</text>
+<line x1="882.0" y1="446" x2="882.0" y2="452" stroke="#52514e" stroke-width="1"/>
+<text x="882.0" y="470.0" font-size="13" fill="#52514e" text-anchor="middle">Sept.</text>
+<text x="78" y="524" font-size="12.5" fill="#52514e">Datenstand 14. September 2026 · Sensordaten Green Ecolution</text>
+</svg>

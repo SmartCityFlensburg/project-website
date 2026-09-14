@@ -68,7 +68,18 @@
 }
 
 .content-body th {
-  @apply border-b border-grey-900/15 px-3 py-2 font-lato font-bold text-grey-900;
+  @apply border-b border-grey-900/15 px-3 py-2 font-lato font-bold text-grey-900 align-bottom;
+}
+
+/* Mdx wraps cell content that sits on its own source line in a paragraph, which
+   would otherwise inherit the article's paragraph margins and blow up the row. */
+.content-body-article :is(th, td) > p {
+  @apply my-0 text-inherit;
+}
+
+/* Second header line, e.g. the rainfall total under a date. */
+.content-body th .content-table-sub {
+  @apply mt-0.5 block text-xs font-normal whitespace-nowrap text-grey-900/60;
 }
 
 .content-body td {

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0](https://github.com/green-ecolution/green-ecolution.de/compare/v1.14.0...v1.15.0) (2026-09-14)
+
+
+### Features
+
+* **blog:** add post on the first summer of soil moisture data ([#484](https://github.com/green-ecolution/green-ecolution.de/issues/484)) ([358dba0](https://github.com/green-ecolution/green-ecolution.de/commit/358dba0f708c0521f081ee95cca5a3c0d4977734))
+
+
+### Bug Fixes
+
+* **blog:** update community voting cover ([cb8ebde](https://github.com/green-ecolution/green-ecolution.de/commit/cb8ebde95eb6869a73d0e988c67e999d3311aef5))
+
 ## [1.14.0](https://github.com/green-ecolution/green-ecolution.de/compare/v1.13.1...v1.14.0) (2026-09-10)
 
 

@@ -136,7 +136,7 @@ export default function ShowcaseLoop({ strings }: Props) {
   }, [])
 
   return (
-    <ShowcaseBoundary>
+    <ShowcaseBoundary sceneId={sceneAt(timeline, elapsedMs).scene.id}>
       <TranslationProvider strings={strings}>
         <LoopBody elapsedMs={elapsedMs} />
       </TranslationProvider>

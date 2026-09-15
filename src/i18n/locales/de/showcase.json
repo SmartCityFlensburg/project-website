@@ -12,6 +12,9 @@
     "label": "Live-Demo ausprobieren",
     "url": "demo.green-ecolution.de"
   },
+  "gauge": {
+    "tankLabel": "Tank"
+  },
   "scenes": {
     "title": {
       "statement": "Smartes Grünflächenmanagement für lebenswerte Städte",

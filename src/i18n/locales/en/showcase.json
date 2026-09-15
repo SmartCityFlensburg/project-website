@@ -12,6 +12,9 @@
     "label": "Try the live demo",
     "url": "demo.green-ecolution.de"
   },
+  "gauge": {
+    "tankLabel": "Tank"
+  },
   "scenes": {
     "title": {
       "statement": "Smart green space management for liveable cities",

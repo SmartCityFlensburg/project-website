@@ -62,6 +62,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Backgrounding chromium below (instead of running it as bash's foreground
+# command) takes it out of `|| true`'s reach: that idiom does not just ignore
+# a nonzero exit code, it also swallows the "killed by SIGINT" status that
+# would otherwise make bash re-raise the signal against itself and exit. A
+# trap is the only reliable way back to that behaviour.
+stopping=0
+chromium_pid=""
+
+request_stop() {
+  stopping=1
+  [[ -n "$chromium_pid" ]] && kill "$chromium_pid" 2>/dev/null || true
+}
+trap request_stop INT TERM
+
 start_server
 
 if ! wait_for_server; then
@@ -84,7 +98,7 @@ fi
 ) &
 watchdog_pid=$!
 
-while true; do
+while [[ "$stopping" -eq 0 ]]; do
   chromium \
     --kiosk \
     --incognito \
@@ -92,7 +106,13 @@ while true; do
     --disable-infobars \
     --disable-session-crashed-bubble \
     --autoplay-policy=no-user-gesture-required \
-    "$url" || true
+    "$url" &
+  chromium_pid=$!
+  wait "$chromium_pid" || true
+  chromium_pid=""
+
+  [[ "$stopping" -eq 1 ]] && break
+
   echo "Browser beendet, Neustart in 3 Sekunden" >&2
   sleep 3
 done

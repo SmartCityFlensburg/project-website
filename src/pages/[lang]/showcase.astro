@@ -1,0 +1,15 @@
+---
+import ShowcaseLayout from '../../layouts/ShowcaseLayout.astro'
+import { getTranslations } from '../../i18n/t'
+import { currentLanguage } from '../../i18n/languages'
+import { languagePaths } from '../../lib/languagePaths'
+
+export const getStaticPaths = languagePaths
+
+const language = currentLanguage(Astro.params.lang)
+const t = getTranslations(language, 'showcase')
+---
+
+<ShowcaseLayout title={t('meta.title')} description={t('meta.description')} language={language}>
+  <main class="h-full w-full"></main>
+</ShowcaseLayout>

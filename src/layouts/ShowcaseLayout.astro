@@ -1,0 +1,32 @@
+---
+import { Font } from 'astro:assets'
+import type { Language } from '../i18n/languages'
+import '../css/site.css'
+
+interface Props {
+  title: string
+  description: string
+  language: Language
+}
+
+const { title, description, language } = Astro.props
+---
+
+<!doctype html>
+<html lang={language}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <!-- A booth loop is not part of the public site: it duplicates copy that
+         already ranks on the landing page. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/assets/favicons/favicon.svg" type="image/svg+xml" />
+    <Font cssVariable="--font-lato-face" preload />
+    <Font cssVariable="--font-nunito-sans-face" preload />
+  </head>
+  <body class="m-0 h-screen w-screen overflow-hidden bg-[#2D4A27]">
+    <slot />
+  </body>
+</html>

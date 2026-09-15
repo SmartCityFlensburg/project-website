@@ -82,13 +82,20 @@ export function cameraAt(seconds: number): CameraFrame {
   }
 }
 
+export type TreeForm = 'spreading' | 'oval' | 'columnar' | 'layered'
+
 export interface CanopyLobe {
   /** Offset from the top of the trunk, in canopy radii. */
   at: Vec3
-  /** Radius, also in canopy radii. */
-  radius: number
-  /** Index into the three canopy greens, lit to shaded. */
+  /** Half-extents per axis, also in canopy radii. Never equal: foliage is not a ball. */
+  scale: Vec3
+  /** Turn about y and roll about z, so no two lobes show the same facets. */
+  spin: number
+  roll: number
+  /** Index into the tree's three canopy greens, lit to shaded. */
   tone: number
+  /** The crown's body is finer than the clumps on its outside. */
+  smooth: boolean
 }
 
 export interface TreeLimb {
@@ -105,63 +112,238 @@ export interface TreeLimb {
 export interface QuayTree {
   x: number
   z: number
+  form: TreeForm
   height: number
   trunkRadius: number
   canopyRadius: number
   phase: number
   /** A standing lean, added to the sway. No street tree grows plumb. */
   tilt: number
+  /** Which of the canopy palettes the crown is painted from. */
+  shade: number
   limbs: readonly TreeLimb[]
   canopy: readonly CanopyLobe[]
+}
+
+/** Where a limb ends, relative to the foot of the trunk. */
+export function limbTip(limb: TreeLimb, height: number): Vec3 {
+  const out = Math.sin(limb.lean) * limb.length
+  return [
+    Math.cos(limb.turn) * out,
+    height * limb.at + Math.cos(limb.lean) * limb.length,
+    -Math.sin(limb.turn) * out,
+  ]
 }
 
 // Spread by the golden angle so the spacing, heights and sway phases vary
 // without a hand-kept table and without any two neighbours matching.
 const GOLDEN = 2.399963
 
-/**
- * Three limbs leaving the trunk on different bearings. Their lower stretch
- * shows below the foliage, which is what stops a crown from reading as a ball
- * balanced on a pole.
- */
-function limbsOf(index: number, height: number, trunkRadius: number): readonly TreeLimb[] {
-  return Array.from({ length: 3 }, (_, k) => ({
-    at: 0.54 + k * 0.13,
-    turn: index * GOLDEN + (k * TAU) / 3 + Math.sin(index + k) * 0.4,
-    lean: 0.72 - k * 0.15,
-    length: height * (0.34 - k * 0.05),
-    radius: trunkRadius * (0.46 - k * 0.07),
-  }))
+/** A stable pseudo-random in [0, 1) for one part of one tree. */
+function hash(index: number, salt: number): number {
+  const raw = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453
+  return raw - Math.floor(raw)
 }
 
-const CROWN_LOBES = 6
+interface CrownForm {
+  /** Mean height of the whole tree, and the canopy radius that goes with it. */
+  height: number
+  canopy: number
+  /**
+   * The crown as an ellipsoid: its centre above the top of the trunk and its
+   * half-extents across and up, all in canopy radii.
+   */
+  centre: number
+  spread: number
+  rise: number
+  /**
+   * Where each limb leaves the trunk, as a fraction of its height, and how
+   * high on the crown's shell it aims, as an elevation in radians.
+   */
+  limbs: readonly { at: number; climb: number }[]
+  /** How many lobes fill the shell between the limb tips. */
+  fill: number
+  /** The body of the crown as a fraction of its ellipsoid. Small for tiers to show. */
+  core: number
+  /** How a lobe is squashed: flat and wide for a plane tree, tall for a poplar. */
+  lobe: Vec3
+}
+
+// Four silhouettes an avenue actually mixes: a broad oak-like head, the egg of
+// a lime, the column of a poplar and the flat tiers of a plane tree.
+const CROWN_FORMS: Record<TreeForm, CrownForm> = {
+  spreading: {
+    height: 6.8,
+    canopy: 3,
+    centre: 0.1,
+    spread: 1.15,
+    rise: 1,
+    limbs: [
+      { at: 0.6, climb: -0.2 },
+      { at: 0.66, climb: 0.05 },
+      { at: 0.72, climb: 0.3 },
+      { at: 0.78, climb: 0.55 },
+    ],
+    fill: 6,
+    core: 0.8,
+    lobe: [1, 0.78, 0.92],
+  },
+  oval: {
+    height: 7,
+    canopy: 2.6,
+    centre: 0.5,
+    spread: 1,
+    rise: 1.5,
+    limbs: [
+      { at: 0.62, climb: 0 },
+      { at: 0.7, climb: 0.3 },
+      { at: 0.78, climb: 0.6 },
+    ],
+    fill: 6,
+    core: 0.8,
+    lobe: [0.9, 1.15, 0.9],
+  },
+  columnar: {
+    height: 6.8,
+    canopy: 1.8,
+    centre: 0.4,
+    spread: 0.95,
+    rise: 2.4,
+    limbs: [
+      { at: 0.55, climb: 0.4 },
+      { at: 0.65, climb: 0.7 },
+      { at: 0.75, climb: 1 },
+    ],
+    fill: 8,
+    core: 0.8,
+    lobe: [0.8, 1.4, 0.8],
+  },
+  layered: {
+    height: 6.6,
+    canopy: 3,
+    centre: 0.05,
+    spread: 1.15,
+    rise: 1,
+    limbs: [
+      { at: 0.58, climb: -0.3 },
+      { at: 0.64, climb: 0 },
+      { at: 0.7, climb: 0.3 },
+      { at: 0.76, climb: 0.6 },
+      { at: 0.82, climb: 0.9 },
+    ],
+    fill: 4,
+    core: 0.55,
+    lobe: [1.15, 0.5, 1],
+  },
+}
+
+const FORM_ORDER: readonly TreeForm[] = ['spreading', 'oval', 'layered', 'columnar']
+
+// Lobes sit inside the shell, not on it, so their outer faces make the
+// silhouette rather than their centres.
+const SHELL = 0.75
+
+/** A point on the crown's shell, in canopy radii from the top of the trunk. */
+function onShell(form: CrownForm, turn: number, climb: number, depth = SHELL): Vec3 {
+  const across = Math.cos(climb) * form.spread * depth
+  return [
+    Math.cos(turn) * across,
+    form.centre + Math.sin(climb) * form.rise * depth,
+    -Math.sin(turn) * across,
+  ]
+}
 
 /**
- * A core lobe with five smaller ones set around and above it. Turned off the
- * golden angle per tree, so no two crowns along the avenue share a silhouette.
+ * Limbs leave the trunk on spread bearings and are aimed at the crown's shell,
+ * so every one of them ends inside the foliage, and the stretch below shows
+ * where the trunk becomes a tree rather than a post with a ball on it.
  */
-function crownOf(index: number, shaded: boolean): readonly CanopyLobe[] {
-  const deepen = shaded ? 1 : 0
-  const lobes: CanopyLobe[] = [{ at: [0, 0.3, 0], radius: 0.9, tone: 1 + deepen }]
+function limbsOf(
+  index: number,
+  form: CrownForm,
+  height: number,
+  canopyRadius: number,
+  trunkRadius: number,
+): readonly TreeLimb[] {
+  return form.limbs.map((limb, k) => {
+    const turn = index * GOLDEN + (k * TAU) / form.limbs.length + (hash(index, k) - 0.5) * 0.6
+    const target = onShell(form, turn, limb.climb)
+    const dx = target[0] * canopyRadius
+    const dy = height * (1 - limb.at) + target[1] * canopyRadius
+    const dz = target[2] * canopyRadius
+    const out = Math.hypot(dx, dz)
 
-  for (let k = 0; k < CROWN_LOBES - 1; k++) {
-    const turn = index * GOLDEN + (k * TAU) / (CROWN_LOBES - 1)
-    const reach = 0.62 + Math.sin(index * 1.3 + k * 1.9) * 0.13
-    const lift = 0.5 + Math.cos(index * 0.7 + k * 1.3) * 0.38
-    const toward = [Math.cos(turn) * reach, lift, Math.sin(turn) * reach * 0.72] as const
+    return {
+      at: limb.at,
+      turn: Math.atan2(-dz, dx),
+      lean: Math.atan2(out, dy),
+      length: Math.hypot(out, dy),
+      radius: trunkRadius * (0.5 - k * 0.04),
+    }
+  })
+}
+
+/**
+ * One body the shape of the crown, a lobe at every limb tip, more scattered
+ * over the shell between them and one on top. The outer lobes are squashed to
+ * the form and turned on their own, so a crown reads as clumps of leaves on
+ * branches rather than as a stack of spheres, and the body behind them keeps
+ * the sky from showing through.
+ */
+function crownOf(
+  index: number,
+  form: CrownForm,
+  limbs: readonly TreeLimb[],
+  height: number,
+  canopyRadius: number,
+): readonly CanopyLobe[] {
+  const lobes: CanopyLobe[] = []
+
+  const add = (at: Vec3, scale: Vec3, smooth = false) => {
     // Shading the crown by hand beats waiting for a second light: lambert alone
     // flattens foliage this small into one green mass. The morning sun comes up
     // the Förde from +x, so a lobe reaching that way and sitting high in the
     // crown catches it. The camera's side, +z, counts too — a lobe in front of
     // the crown that takes a back lobe's tone reads as a hole punched in it.
-    const lit = toward[0] * 0.5 + toward[2] * 0.4 + (lift - 0.5) * 0.9
+    const lit = at[0] * 0.5 + at[2] * 0.4 + (at[1] - form.centre) * 0.7
 
     lobes.push({
-      at: toward,
-      radius: 0.44 + Math.cos(index * 1.7 + k * 2.3) * 0.1,
-      tone: Math.min(2, (lit > 0.28 ? 0 : lit > -0.1 ? 1 : 2) + deepen),
+      at,
+      scale,
+      spin: hash(index, lobes.length + 11) * TAU,
+      roll: (hash(index, lobes.length + 23) - 0.5) * (smooth ? 0.2 : 0.5),
+      tone: lit > 0.28 ? 0 : lit > -0.1 ? 1 : 2,
+      smooth,
     })
   }
+
+  const clump = (at: Vec3, radius: number) =>
+    add(at, [form.lobe[0] * radius, form.lobe[1] * radius, form.lobe[2] * radius])
+
+  add(
+    [0, form.centre, 0],
+    [form.spread * form.core, form.rise * form.core, form.spread * form.core * 0.85],
+    true,
+  )
+
+  for (const limb of limbs) {
+    const tip = limbTip(limb, height)
+    clump(
+      [tip[0] / canopyRadius, (tip[1] - height) / canopyRadius, tip[2] / canopyRadius],
+      0.55 + hash(index, lobes.length) * 0.14,
+    )
+  }
+
+  for (let k = 0; k < form.fill; k++) {
+    const turn = index * GOLDEN * 1.7 + (k * TAU) / form.fill + hash(index, k + 40) * 0.8
+    const climb = lerp(-0.45, 1, (k + 0.5) / form.fill) + (hash(index, k + 50) - 0.5) * 0.3
+    clump(
+      onShell(form, turn, climb, SHELL - 0.08 + hash(index, k + 60) * 0.16),
+      0.5 + hash(index, k + 70) * 0.14,
+    )
+  }
+
+  clump([0, form.centre + form.rise * 0.55, 0], 0.58)
 
   return lobes
 }
@@ -170,19 +352,27 @@ function crownOf(index: number, shaded: boolean): readonly CanopyLobe[] {
 // oversized trees in frame hide the town they are supposed to stand in.
 export const quayTrees: readonly QuayTree[] = Array.from({ length: 21 }, (_, i) => {
   const wobble = Math.sin(i * GOLDEN)
-  const height = 7.2 + wobble * 0.9
-  const trunkRadius = 0.42 + wobble * 0.06
+  // Stepped by the golden angle rather than hashed: a hash happily deals the
+  // same form to three neighbours, and a run of three is what the eye catches.
+  const form = FORM_ORDER[Math.floor(((((i + 1) * GOLDEN) % TAU) / TAU) * FORM_ORDER.length)]
+  const shape = CROWN_FORMS[form]
+  const height = shape.height * (0.9 + hash(i, 5) * 0.2)
+  const trunkRadius = height * 0.055 + wobble * 0.04
+  const canopyRadius = shape.canopy * (0.92 + hash(i, 7) * 0.16)
+  const limbs = limbsOf(i, shape, height, canopyRadius, trunkRadius)
 
   return {
     x: -90 + i * 9 + wobble * 1.6,
     z: -8 + Math.sin(i * 1.7) * 2.4,
+    form,
     height,
     trunkRadius,
-    canopyRadius: 3.4 + Math.cos(i * 1.31) * 0.5,
+    canopyRadius,
     phase: (i * GOLDEN) % TAU,
     tilt: Math.sin(i * 2.9) * 0.04,
-    limbs: limbsOf(i, height, trunkRadius),
-    canopy: crownOf(i, i % 3 === 1),
+    shade: Math.floor(hash(i, 9) * 3),
+    limbs,
+    canopy: crownOf(i, shape, limbs, height, canopyRadius),
   }
 })
 
@@ -639,9 +829,13 @@ export const fordeColors = {
   // The limbs sit against the crown rather than against the sky, so they carry
   // a touch more shade than the trunk or they wash out inside the foliage.
   treeLimb: '#6B5340',
+  // Five greens for three palettes: a fresh yellowish one, the plain one and
+  // a deep one, so the avenue is not twenty-one copies of the same tree.
+  treeCanopyWarm: '#A8CA5E',
   treeCanopyLit: '#86C25C',
   treeCanopy: '#63A94A',
   treeCanopyDark: '#3E8038',
+  treeCanopyDeep: '#2E6B33',
   treePitSoil: '#8A7358',
   treePitKerb: '#A8A695',
   fog: '#D5E3E4',

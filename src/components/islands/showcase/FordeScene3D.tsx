@@ -1051,17 +1051,26 @@ function shipGeometry(ship: Ship): BufferGeometry {
 
 const shipGeometries = museumShips.map(shipGeometry)
 
-// A street tree is ten parts, and there are twenty-one of them on screen for
-// the whole opening. Merging each tree into one geometry with its tone baked
-// into the vertex colours keeps the avenue at one draw call per tree instead of
-// ten, which is what lets it carry this much detail at all.
+// A street tree is a trunk, a few limbs and a dozen or so lobes of foliage, and
+// there are twenty-one of them on screen for the whole opening. Merging each
+// tree into one geometry with its tone baked into the vertex colours keeps the
+// avenue at one draw call per tree, which is what lets it carry this much detail.
 const unitTrunk = new CylinderGeometry(0.62, 1, 1, 9)
 const unitFlare = new CylinderGeometry(1, 1.6, 1, 9)
 const unitLimb = new CylinderGeometry(0.5, 1, 1, 6)
-const unitLobe = new IcosahedronGeometry(1, 1)
+// Twenty facets for the clumps on the outside, not eighty. At this size the
+// finer ball reads as a sphere, the coarse one, squashed and turned, as a clump
+// of leaves. The body behind them is bigger and gets the finer mesh, or its
+// facets are the size of houses.
+const unitLobe = new IcosahedronGeometry(1, 0)
+const unitCrownBody = new IcosahedronGeometry(1, 1)
 const unitPit = new CylinderGeometry(1, 1, 1, 16)
 
-const canopyTones = [fordeColors.treeCanopyLit, fordeColors.treeCanopy, fordeColors.treeCanopyDark]
+const canopyPalettes = [
+  [fordeColors.treeCanopyLit, fordeColors.treeCanopy, fordeColors.treeCanopyDark],
+  [fordeColors.treeCanopyWarm, fordeColors.treeCanopyLit, fordeColors.treeCanopy],
+  [fordeColors.treeCanopy, fordeColors.treeCanopyDark, fordeColors.treeCanopyDeep],
+]
 
 function treeGeometry(tree: QuayTree): BufferGeometry {
   const crown = tree.canopyRadius
@@ -1095,17 +1104,24 @@ function treeGeometry(tree: QuayTree): BufferGeometry {
     )
   }
 
-  for (const lobe of tree.canopy) {
-    const radius = lobe.radius * crown
+  const tones = canopyPalettes[tree.shade]
 
+  for (const lobe of tree.canopy) {
     parts.push(
       painted(
-        unitLobe,
-        placed(
-          [lobe.at[0] * crown, tree.height + lobe.at[1] * crown, lobe.at[2] * crown],
-          [radius, radius * 0.86, radius],
-        ),
-        canopyTones[lobe.tone],
+        lobe.smooth ? unitCrownBody : unitLobe,
+        new Matrix4()
+          .makeTranslation(lobe.at[0] * crown, tree.height + lobe.at[1] * crown, lobe.at[2] * crown)
+          .multiply(new Matrix4().makeRotationY(lobe.spin))
+          .multiply(new Matrix4().makeRotationZ(lobe.roll))
+          .multiply(
+            new Matrix4().makeScale(
+              lobe.scale[0] * crown,
+              lobe.scale[1] * crown,
+              lobe.scale[2] * crown,
+            ),
+          ),
+        tones[lobe.tone],
       ),
     )
   }

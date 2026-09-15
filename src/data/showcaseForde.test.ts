@@ -9,6 +9,7 @@ import {
   quayHouses,
   scene,
   spires,
+  limbTip,
   swayAngle,
   waveHeight,
   wind,
@@ -171,5 +172,52 @@ describe('cameraAt', () => {
     for (const t of [0, scene.seconds]) {
       expect(Math.abs(cameraAt(t).position[0])).toBeLessThan(planted)
     }
+  })
+})
+
+describe('quayTrees', () => {
+  // A limb that ends in open air is a stick poking out of the crown.
+  test('ends every limb inside a lobe of its own crown', () => {
+    for (const tree of quayTrees) {
+      const crown = tree.canopyRadius
+
+      for (const limb of tree.limbs) {
+        const tip = limbTip(limb, tree.height)
+        const covered = tree.canopy.some((lobe) => {
+          const gap = Math.hypot(
+            tip[0] - lobe.at[0] * crown,
+            tip[1] - (tree.height + lobe.at[1] * crown),
+            tip[2] - lobe.at[2] * crown,
+          )
+          return gap < Math.min(...lobe.scale) * crown
+        })
+
+        expect(covered).toBe(true)
+      }
+    }
+  })
+
+  // The trunk has to show below the foliage, or the tree is a bush on a stick.
+  test('keeps every crown clear of the lower trunk', () => {
+    for (const tree of quayTrees) {
+      for (const lobe of tree.canopy) {
+        const bottom = tree.height + (lobe.at[1] - lobe.scale[1]) * tree.canopyRadius
+        expect(bottom).toBeGreaterThan(tree.height * 0.4)
+      }
+    }
+  })
+
+  // One shape repeated down the quay reads as a row of bollards with leaves on.
+  test('mixes the crown forms along the avenue', () => {
+    expect(new Set(quayTrees.map((tree) => tree.form)).size).toBe(4)
+
+    for (let i = 2; i < quayTrees.length; i++) {
+      const run = new Set(quayTrees.slice(i - 2, i + 1).map((tree) => tree.form))
+      expect(run.size).toBeGreaterThan(1)
+    }
+  })
+
+  test('uses every canopy palette', () => {
+    expect(new Set(quayTrees.map((tree) => tree.shade)).size).toBe(3)
   })
 })

@@ -36,8 +36,56 @@
 }
 
 .showcase-rise {
-  animation: showcase-rise 620ms var(--ease-spring-settle) var(--showcase-delay, 0ms) both
-    !important;
+  animation: showcase-rise 620ms var(--ease-spring-settle) var(--showcase-delay, 0ms) both !important;
+}
+
+/* The opening slide reveals its headline line by line from behind its own
+   baseline, so the type builds instead of fading in as one block. Each line
+   needs an overflow-hidden wrapper for the mask to have an edge. */
+@keyframes showcase-unmask {
+  from {
+    opacity: 0;
+    transform: translateY(0.95em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.showcase-unmask {
+  animation: showcase-unmask 900ms var(--ease-spring-settle) var(--showcase-delay, 0ms) both !important;
+}
+
+/* The ground the opening slide's type stands on. It belongs to the type, not to
+   the scene, so it arrives with it instead of veiling the harbour from the
+   first frame. Slower than the type it carries, so it is never the thing the
+   eye catches. */
+@keyframes showcase-veil {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.showcase-veil {
+  animation: showcase-veil 1200ms ease-out var(--showcase-delay, 0ms) both !important;
+}
+
+@keyframes showcase-rule-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.showcase-rule-draw {
+  transform-origin: left center;
+  animation: showcase-rule-draw 700ms var(--ease-spring-settle) var(--showcase-delay, 0ms) both !important;
 }
 
 @keyframes showcase-sink {

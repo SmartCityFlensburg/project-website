@@ -13,6 +13,11 @@ import {
 
 const timeline = buildTimeline(showcaseScenes)
 
+// Where the title hands over to the second scene. Read from the timeline rather
+// than written out, because these cases are about what happens at a boundary,
+// not about where the boundary happens to fall.
+const handover = timeline[1].startMs
+
 describe('totalDurationMs', () => {
   it('summiert die Schleife auf exakt 180 Sekunden', () => {
     expect(totalDurationMs(showcaseScenes)).toBe(180_000)
@@ -38,17 +43,17 @@ describe('sceneAt', () => {
   })
 
   it('wechselt genau an der Szenengrenze', () => {
-    expect(sceneAt(timeline, 11_999).scene.id).toBe('title')
-    expect(sceneAt(timeline, 12_000).scene.id).toBe('quote')
+    expect(sceneAt(timeline, handover - 1).scene.id).toBe('title')
+    expect(sceneAt(timeline, handover).scene.id).toBe('quote')
   })
 
   it('beginnt nach einem vollen Durchlauf von vorn', () => {
     expect(sceneAt(timeline, 180_000).scene.id).toBe('title')
-    expect(sceneAt(timeline, 180_000 + 12_001).scene.id).toBe('quote')
+    expect(sceneAt(timeline, 180_000 + handover + 1).scene.id).toBe('quote')
   })
 
   it('bleibt auch nach vielen Durchläufen synchron', () => {
-    expect(sceneAt(timeline, 300 * 180_000 + 12_500).scene.id).toBe('quote')
+    expect(sceneAt(timeline, 300 * 180_000 + handover + 500).scene.id).toBe('quote')
   })
 })
 
@@ -64,12 +69,12 @@ describe('stepStops', () => {
   it('setzt jede Station auf die Mitte der Szene, die den Schritt eröffnet', () => {
     const stops = stepStops(showcaseScenes)
 
-    // sensor (messen) läuft 39_000–53_000, map (verstehen) 65_000–79_000,
-    // planning (handeln) 93_000–105_000 — jeweils bezogen auf 180_000ms
+    // sensor (messen) läuft 44_000–58_000, map (verstehen) 70_000–84_000,
+    // planning (handeln) 98_000–110_000 — jeweils bezogen auf 180_000ms
     // Gesamtlauf.
-    expect(stops.messen).toBeCloseTo(46_000 / 180_000, 5)
-    expect(stops.verstehen).toBeCloseTo(72_000 / 180_000, 5)
-    expect(stops.handeln).toBeCloseTo(99_000 / 180_000, 5)
+    expect(stops.messen).toBeCloseTo(51_000 / 180_000, 5)
+    expect(stops.verstehen).toBeCloseTo(77_000 / 180_000, 5)
+    expect(stops.handeln).toBeCloseTo(104_000 / 180_000, 5)
   })
 
   it('liefert für jeden Schritt einen Wert zwischen null und eins', () => {
@@ -88,7 +93,7 @@ describe('stepStops', () => {
 
     const stops = stepStops(stretched)
 
-    expect(stops.messen).toBeCloseTo((39_000 + ((14 + 20) / 2) * 1000) / (180_000 + 20_000), 5)
+    expect(stops.messen).toBeCloseTo((44_000 + ((14 + 20) / 2) * 1000) / (180_000 + 20_000), 5)
   })
 })
 
@@ -104,11 +109,11 @@ describe('previousOf', () => {
 
 describe('msIntoScene', () => {
   it('zählt ab dem Beginn der laufenden Szene', () => {
-    expect(msIntoScene(timeline, timeline[1], 12_400)).toBe(400)
+    expect(msIntoScene(timeline, timeline[1], handover + 400)).toBe(400)
   })
 
   it('zählt auch nach vielen Durchläufen ab dem Szenenbeginn', () => {
-    expect(msIntoScene(timeline, timeline[1], 300 * 180_000 + 12_400)).toBe(400)
+    expect(msIntoScene(timeline, timeline[1], 300 * 180_000 + handover + 400)).toBe(400)
   })
 })
 
@@ -119,8 +124,8 @@ describe('leavingOf', () => {
   })
 
   it('hat kurz nach dem Wechsel in die zweite Szene die Titelszene ausgehend', () => {
-    const current = sceneAt(timeline, 12_100)
-    expect(leavingOf(timeline, current, 12_100, 600)?.scene.id).toBe('title')
+    const current = sceneAt(timeline, handover + 100)
+    expect(leavingOf(timeline, current, handover + 100, 600)?.scene.id).toBe('title')
   })
 
   it('hat am Schleifenübergang die Demo-Szene ausgehend, anders als beim Kaltstart', () => {

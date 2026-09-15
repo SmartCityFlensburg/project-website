@@ -29,7 +29,7 @@ export type Visual =
   | { kind: 'video'; clip: string; poster: string }
   | { kind: 'tour' }
   | { kind: 'partners' }
-  | { kind: 'wordmark' }
+  | { kind: 'forde' }
   | { kind: 'demo' }
 
 export type ChromeElement = 'logo' | 'qr' | 'tour'
@@ -45,24 +45,27 @@ export interface Scene {
   /** Which side the visual sits on in the exhibit layout. */
   side?: 'left' | 'right'
   /**
-   * Persistent elements to hide for this scene. The title replaces the small
-   * corner logo with its own large one; the closing slide replaces the QR
-   * corner and tour path with its own centered call to action.
+   * Persistent elements to hide for this scene. The closing slide replaces the
+   * QR corner and tour path with its own centered call to action.
    */
   hideChrome?: ChromeElement[]
   visual: Visual
 }
+
+// The Förde scene's camera move has to span exactly the slide it runs under, so
+// both read the length from here rather than each carrying their own copy.
+export const TITLE_SECONDS = 17
 
 // The texts live in the i18n catalogs under scenes.<id>, so both languages
 // share this one running order.
 export const showcaseScenes: Scene[] = [
   {
     id: 'title',
-    act: 'software',
+    act: 'lage',
     layout: 'title',
-    seconds: 12,
-    hideChrome: ['logo'],
-    visual: { kind: 'wordmark' },
+    seconds: TITLE_SECONDS,
+    hideChrome: ['logo', 'tour'],
+    visual: { kind: 'forde' },
   },
   {
     id: 'quote',
@@ -163,7 +166,7 @@ export const showcaseScenes: Scene[] = [
     id: 'demo',
     act: 'fahrt',
     layout: 'demo',
-    seconds: 19,
+    seconds: 14,
     hideChrome: ['qr', 'tour'],
     visual: { kind: 'demo' },
   },

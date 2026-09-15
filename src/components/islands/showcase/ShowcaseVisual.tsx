@@ -187,9 +187,8 @@ export default function ShowcaseVisual({ visual, seconds }: { visual: Visual; se
     case 'partners':
       return <PartnerLogos />
 
-    case 'wordmark':
-      // TitleScene draws its own mark directly, composed with the headline
-      // rather than routed through this generic slot.
+    case 'forde':
+      // Mounted once for the whole run by ShowcaseLoop, not per scene.
       return null
 
     case 'demo':

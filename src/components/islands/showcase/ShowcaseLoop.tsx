@@ -13,6 +13,7 @@ import logoColor from '../../../assets/press/green-ecolution-logo-color.svg'
 import logoWhite from '../../../assets/press/green-ecolution-logo-white.svg'
 import ShowcaseBoundary from './ShowcaseBoundary'
 import ShowcaseScene from './ShowcaseScene'
+import FordeScene3D from './FordeScene3D'
 import ShowcaseTour from './ShowcaseTour'
 import TourPath from './TourPath'
 
@@ -59,6 +60,7 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
         className="showcase-act-fade absolute inset-0 transition-colors duration-[1200ms]"
         style={{ backgroundColor: ACT_BACKGROUND[current.scene.act] }}
       />
+      <FordeScene3D active={current.scene.visual.kind === 'forde'} />
       <div className="absolute inset-y-0 right-0 w-[65.5%]">
         <ShowcaseTour active={current.scene.visual.kind === 'tour'} />
       </div>

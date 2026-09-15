@@ -1,10 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { TranslationProvider } from '../../../i18n/TranslationProvider'
-import { isDarkAct, showcaseScenes, type Act } from '../../../data/showcase'
+import {
+  isDarkAct,
+  showcaseScenes,
+  TRANSITION,
+  type Act,
+  type ChromeElement,
+  type Scene,
+} from '../../../data/showcase'
 import {
   buildTimeline,
+  inLastMs,
   leavingOf,
   loopProgress,
+  previousOf,
   sceneAt,
   type TimelineEntry,
 } from '../../../lib/showcase/timeline'
@@ -28,9 +37,38 @@ const ACT_BACKGROUND: Record<Act, string> = {
   fahrt: '#2D4A27',
 }
 
-const FADE_MS = 600
-
 const timeline = buildTimeline(showcaseScenes)
+
+// Read by the scene's build animations through inherited custom properties.
+// Constant for the scene's lifetime on purpose: a delay that changes under a
+// running css animation makes it jump. A scene that dips lifts its text before
+// the canvas goes, so the model stands bare for a beat.
+function layerTiming(scene: Scene): CSSProperties {
+  const dip = scene.exit === 'dip' ? TRANSITION.dipMs : 0
+  return {
+    '--showcase-layer-delay': `${TRANSITION.enterHoldMs}ms`,
+    '--showcase-outro-at': `${scene.seconds * 1000 - dip - TRANSITION.outroMs}ms`,
+  } as CSSProperties
+}
+
+function layerClass(isLeaving: boolean, entersFromPlate: boolean): string {
+  if (isLeaving) {
+    return 'showcase-leave absolute inset-0'
+  }
+  return entersFromPlate ? 'showcase-enter absolute inset-0' : 'absolute inset-0'
+}
+
+// Which webgl canvas is on screen: a canvas is shown while its scene runs,
+// minus the dip at the end for a scene that leaves that way.
+function canvasOnScreen(current: TimelineEntry, elapsedMs: number): 'forde' | 'tour' | null {
+  const kind = current.scene.visual.kind
+  if (kind !== 'forde' && kind !== 'tour') {
+    return null
+  }
+  const dipping =
+    current.scene.exit === 'dip' && inLastMs(timeline, current, elapsedMs, TRANSITION.dipMs)
+  return dipping ? null : kind
+}
 
 function LoopBody({ elapsedMs }: { elapsedMs: number }) {
   const t = useT()
@@ -38,19 +76,26 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
   // The scene that just left keeps rendering until its fade is done, so the
   // change reads as a dissolve instead of a cut. Derived from the clock rather
   // than a timer: a second time source beside the loop's own would drift.
-  const leaving = leavingOf(timeline, current, elapsedMs, FADE_MS)
+  const leaving = leavingOf(timeline, current, elapsedMs, TRANSITION.fadeMs)
   const dark = isDarkAct(current.scene.act)
   // The photo layout lays its own deep-green scrim over the lower third and
   // fills the frame with a dark photograph, so the persistent elements follow
   // the scene, not the act it belongs to.
   const onDarkPlate = dark || current.scene.layout === 'photo'
-  // Keyed by scene id and filtered rather than the previous `key={id + '-out'}`
-  // vs `key={id}` pair: those never matched, so React tore the leaving layer
-  // down and remounted it fresh on every crossfade. Keeping the id stable
-  // across the hand-off lets the video, Ken Burns pan and Lottie keep playing
-  // from where they were instead of restarting.
-  const layers = [leaving, current].filter((entry): entry is TimelineEntry => entry !== null)
+  // The new scene lies complete beneath the old one from its first frame and
+  // the old one dissolves on top: at the midpoint the frame is half old, half
+  // new picture, never half plate. A scene following a dip instead rises out
+  // of the plate the canvas has just gone into. Decided from the running order
+  // rather than from `leaving`, which goes away mid-scene and would strip the
+  // class from under a finished animation.
+  const entersFromPlate = previousOf(timeline, current).scene.exit === 'dip'
+  const shownCanvas = canvasOnScreen(current, elapsedMs)
+  // Faded, not unmounted: a corner that pops in at a scene boundary is the
+  // one cut left in a loop that otherwise dissolves everything.
   const hiddenChrome = new Set(current.scene.hideChrome ?? [])
+  const chromeFade = (element: ChromeElement): CSSProperties => ({
+    opacity: hiddenChrome.has(element) ? 0 : 1,
+  })
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -60,69 +105,82 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
         className="showcase-act-fade absolute inset-0 transition-colors duration-[1200ms]"
         style={{ backgroundColor: ACT_BACKGROUND[current.scene.act] }}
       />
-      <FordeScene3D active={current.scene.visual.kind === 'forde'} />
+      <FordeScene3D shown={shownCanvas === 'forde'} />
       <div className="absolute inset-y-0 right-0 w-[65.5%]">
-        <ShowcaseTour active={current.scene.visual.kind === 'tour'} />
+        <ShowcaseTour shown={shownCanvas === 'tour'} />
       </div>
+      {/* One keyed array, not two slots: React matches array children by key,
+          so the node a scene built in as current is the very node that leaves.
+          The video, Ken Burns pan and Lottie play on from where they were
+          instead of restarting at the hand-off. Order is paint order, so the
+          leaving layer comes last and dissolves on top. */}
       <div className="absolute inset-0">
-        {layers.map((entry) => (
-          <div
-            key={entry.scene.id}
-            className={entry === leaving ? 'showcase-sink absolute inset-0' : 'absolute inset-0'}
-          >
-            <ShowcaseScene scene={entry.scene} />
-          </div>
-        ))}
+        {[current, leaving]
+          .filter((entry): entry is TimelineEntry => entry !== null)
+          .map((entry) => (
+            <div
+              key={entry.scene.id}
+              className={layerClass(entry === leaving, entersFromPlate)}
+              style={layerTiming(entry.scene)}
+            >
+              <ShowcaseScene scene={entry.scene} />
+            </div>
+          ))}
       </div>
 
       {/* A plain src swap cuts the moment the plate changes, while the
           background behind it is still 1200ms into its own crossfade — worst
           case a white logo lands on a still-white background. Two stacked
           images crossfading on the same clock keep the logo in step with it. */}
-      {!hiddenChrome.has('logo') && (
-        <div className="absolute top-10 left-24 h-10">
-          <img
-            src={logoColor.src}
-            alt=""
-            className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
-            style={{ opacity: onDarkPlate ? 0 : 1 }}
-          />
-          <img
-            src={logoWhite.src}
-            alt=""
-            className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
-            style={{ opacity: onDarkPlate ? 1 : 0 }}
-          />
-        </div>
-      )}
+      <div
+        className="showcase-act-fade absolute top-10 left-24 h-10 transition-opacity duration-[1200ms]"
+        style={chromeFade('logo')}
+      >
+        <img
+          src={logoColor.src}
+          alt=""
+          className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
+          style={{ opacity: onDarkPlate ? 0 : 1 }}
+        />
+        <img
+          src={logoWhite.src}
+          alt=""
+          className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
+          style={{ opacity: onDarkPlate ? 1 : 0 }}
+        />
+      </div>
 
-      {!hiddenChrome.has('qr') && (
-        <div className="absolute right-24 bottom-24 flex items-center gap-4">
-          <div className="text-right">
-            <p
-              className="showcase-act-fade font-lato text-sm tracking-[0.16em] uppercase transition-colors duration-[1200ms]"
-              style={{ color: onDarkPlate ? '#E8EBCC99' : '#8B7355' }}
-            >
-              {t('demo.label')}
-            </p>
-            <p
-              className="showcase-act-fade font-nunito-sans text-base transition-colors duration-[1200ms]"
-              style={{ color: onDarkPlate ? '#E8EBCC' : '#2D4A27' }}
-            >
-              {t('demo.url')}
-            </p>
-          </div>
-          <img
-            src="/assets/showcase/qr-demo.svg"
-            alt=""
-            className="h-24 w-24 rounded bg-white p-1.5 ring-1 ring-black/10"
-          />
+      <div
+        className="showcase-act-fade absolute right-24 bottom-24 flex items-center gap-4 transition-opacity duration-[1200ms]"
+        style={chromeFade('qr')}
+      >
+        <div className="text-right">
+          <p
+            className="showcase-act-fade font-lato text-sm tracking-[0.16em] uppercase transition-colors duration-[1200ms]"
+            style={{ color: onDarkPlate ? '#E8EBCC99' : '#8B7355' }}
+          >
+            {t('demo.label')}
+          </p>
+          <p
+            className="showcase-act-fade font-nunito-sans text-base transition-colors duration-[1200ms]"
+            style={{ color: onDarkPlate ? '#E8EBCC' : '#2D4A27' }}
+          >
+            {t('demo.url')}
+          </p>
         </div>
-      )}
+        <img
+          src="/assets/showcase/qr-demo.svg"
+          alt=""
+          className="h-24 w-24 rounded bg-white p-1.5 ring-1 ring-black/10"
+        />
+      </div>
 
-      {!hiddenChrome.has('tour') && (
+      <div
+        className="showcase-act-fade transition-opacity duration-[1200ms]"
+        style={chromeFade('tour')}
+      >
         <TourPath progress={loopProgress(showcaseScenes, elapsedMs)} dark={onDarkPlate} />
-      )}
+      </div>
     </div>
   )
 }

@@ -54,6 +54,16 @@ export function msIntoScene(
   return intoLoop(totalMs, elapsedMs) - entry.startMs
 }
 
+export function inLastMs(
+  timeline: TimelineEntry[],
+  entry: TimelineEntry,
+  elapsedMs: number,
+  ms: number,
+): boolean {
+  const remaining = entry.endMs - entry.startMs - msIntoScene(timeline, entry, elapsedMs)
+  return remaining <= ms
+}
+
 export function leavingOf(
   timeline: TimelineEntry[],
   current: TimelineEntry,

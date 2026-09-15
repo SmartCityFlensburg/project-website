@@ -49,12 +49,40 @@ export interface Scene {
    * QR corner and tour path with its own centered call to action.
    */
   hideChrome?: ChromeElement[]
+  /**
+   * How the scene hands over. The default dissolves into the next scene; a
+   * scene on one of the webgl canvases dips through the plate first, because
+   * the canvas lies beneath every scene layer and cannot be dissolved over.
+   * The title scene needs neither: its own wipe covers the harbour before it
+   * ends.
+   */
+  exit?: 'dip'
   visual: Visual
 }
 
 // The Förde scene's camera move has to span exactly the slide it runs under, so
 // both read the length from here rather than each carrying their own copy.
-export const TITLE_SECONDS = 17
+// Two seconds over the original 180s script: the closing wipe and the large
+// wordmark take their own time rather than the harbour's reading time.
+export const TITLE_SECONDS = 19
+
+// One scene change, in order: the text lifts off `outroMs` before the scene
+// ends, the picture dissolves into the next over `fadeMs` from the boundary,
+// and the new text waits `enterHoldMs` after it so the two never overlap.
+// Slow on purpose: the loop plays to people standing metres from the screen,
+// where a snappy cut reads as nervous.
+//
+// A scene marked `exit: 'dip'` leaves through the plate instead: its canvas
+// fades to the act colour over the scene's last `dipMs`, and the next picture
+// rises out of it over the same span. A low-poly model and a photograph share
+// no structure, so half of each on top of the other reads as a double
+// exposure, not as a dissolve.
+export const TRANSITION = {
+  fadeMs: 1000,
+  outroMs: 700,
+  enterHoldMs: 400,
+  dipMs: 800,
+} as const
 
 // The texts live in the i18n catalogs under scenes.<id>, so both languages
 // share this one running order.
@@ -64,7 +92,9 @@ export const showcaseScenes: Scene[] = [
     act: 'lage',
     layout: 'title',
     seconds: TITLE_SECONDS,
-    hideChrome: ['logo', 'tour'],
+    // The scene ends on the pale plate with the brand alone; the corner's
+    // light-on-dark type would vanish there.
+    hideChrome: ['logo', 'qr', 'tour'],
     visual: { kind: 'forde' },
   },
   {
@@ -139,6 +169,7 @@ export const showcaseScenes: Scene[] = [
     seconds: 16,
     step: 'handeln',
     side: 'right',
+    exit: 'dip',
     visual: { kind: 'tour' },
   },
   {

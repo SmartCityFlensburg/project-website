@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { showcaseScenes, STEP_ORDER } from '../../data/showcase'
 import {
   buildTimeline,
+  inLastMs,
   leavingOf,
   loopProgress,
   msIntoScene,
@@ -19,8 +20,8 @@ const timeline = buildTimeline(showcaseScenes)
 const handover = timeline[1].startMs
 
 describe('totalDurationMs', () => {
-  it('summiert die Schleife auf exakt 180 Sekunden', () => {
-    expect(totalDurationMs(showcaseScenes)).toBe(180_000)
+  it('summiert die Schleife auf exakt 182 Sekunden', () => {
+    expect(totalDurationMs(showcaseScenes)).toBe(182_000)
   })
 })
 
@@ -33,7 +34,7 @@ describe('buildTimeline', () => {
 
   it('beginnt bei null und endet bei der Gesamtdauer', () => {
     expect(timeline[0].startMs).toBe(0)
-    expect(timeline[timeline.length - 1].endMs).toBe(180_000)
+    expect(timeline[timeline.length - 1].endMs).toBe(182_000)
   })
 })
 
@@ -48,20 +49,20 @@ describe('sceneAt', () => {
   })
 
   it('beginnt nach einem vollen Durchlauf von vorn', () => {
-    expect(sceneAt(timeline, 180_000).scene.id).toBe('title')
-    expect(sceneAt(timeline, 180_000 + handover + 1).scene.id).toBe('quote')
+    expect(sceneAt(timeline, 182_000).scene.id).toBe('title')
+    expect(sceneAt(timeline, 182_000 + handover + 1).scene.id).toBe('quote')
   })
 
   it('bleibt auch nach vielen Durchläufen synchron', () => {
-    expect(sceneAt(timeline, 300 * 180_000 + handover + 500).scene.id).toBe('quote')
+    expect(sceneAt(timeline, 300 * 182_000 + handover + 500).scene.id).toBe('quote')
   })
 })
 
 describe('loopProgress', () => {
   it('läuft von null bis knapp unter eins', () => {
     expect(loopProgress(showcaseScenes, 0)).toBe(0)
-    expect(loopProgress(showcaseScenes, 90_000)).toBeCloseTo(0.5, 5)
-    expect(loopProgress(showcaseScenes, 180_000)).toBe(0)
+    expect(loopProgress(showcaseScenes, 91_000)).toBeCloseTo(0.5, 5)
+    expect(loopProgress(showcaseScenes, 182_000)).toBe(0)
   })
 })
 
@@ -69,12 +70,12 @@ describe('stepStops', () => {
   it('setzt jede Station auf die Mitte der Szene, die den Schritt eröffnet', () => {
     const stops = stepStops(showcaseScenes)
 
-    // sensor (messen) läuft 44_000–58_000, map (verstehen) 70_000–84_000,
-    // planning (handeln) 98_000–110_000 — jeweils bezogen auf 180_000ms
+    // sensor (messen) läuft 46_000–60_000, map (verstehen) 72_000–86_000,
+    // planning (handeln) 100_000–112_000 — jeweils bezogen auf 182_000ms
     // Gesamtlauf.
-    expect(stops.messen).toBeCloseTo(51_000 / 180_000, 5)
-    expect(stops.verstehen).toBeCloseTo(77_000 / 180_000, 5)
-    expect(stops.handeln).toBeCloseTo(104_000 / 180_000, 5)
+    expect(stops.messen).toBeCloseTo(53_000 / 182_000, 5)
+    expect(stops.verstehen).toBeCloseTo(79_000 / 182_000, 5)
+    expect(stops.handeln).toBeCloseTo(106_000 / 182_000, 5)
   })
 
   it('liefert für jeden Schritt einen Wert zwischen null und eins', () => {
@@ -93,7 +94,7 @@ describe('stepStops', () => {
 
     const stops = stepStops(stretched)
 
-    expect(stops.messen).toBeCloseTo((44_000 + ((14 + 20) / 2) * 1000) / (180_000 + 20_000), 5)
+    expect(stops.messen).toBeCloseTo((46_000 + ((14 + 20) / 2) * 1000) / (182_000 + 20_000), 5)
   })
 })
 
@@ -113,7 +114,25 @@ describe('msIntoScene', () => {
   })
 
   it('zählt auch nach vielen Durchläufen ab dem Szenenbeginn', () => {
-    expect(msIntoScene(timeline, timeline[1], 300 * 180_000 + handover + 400)).toBe(400)
+    expect(msIntoScene(timeline, timeline[1], 300 * 182_000 + handover + 400)).toBe(400)
+  })
+})
+
+describe('inLastMs', () => {
+  it('ist mitten in der Titelszene nicht in den letzten 800 ms', () => {
+    const current = sceneAt(timeline, handover - 801)
+    expect(inLastMs(timeline, current, handover - 801, 800)).toBe(false)
+  })
+
+  it('ist ab 800 ms vor der Übergabe in den letzten 800 ms', () => {
+    const current = sceneAt(timeline, handover - 800)
+    expect(inLastMs(timeline, current, handover - 800, 800)).toBe(true)
+  })
+
+  it('rechnet am Schleifenende gegen das Ende der Demo-Szene', () => {
+    const current = sceneAt(timeline, 181_900)
+    expect(inLastMs(timeline, current, 181_900, 800)).toBe(true)
+    expect(inLastMs(timeline, current, 181_000, 800)).toBe(false)
   })
 })
 
@@ -129,8 +148,8 @@ describe('leavingOf', () => {
   })
 
   it('hat am Schleifenübergang die Demo-Szene ausgehend, anders als beim Kaltstart', () => {
-    const current = sceneAt(timeline, 180_100)
-    expect(leavingOf(timeline, current, 180_100, 600)?.scene.id).toBe('demo')
+    const current = sceneAt(timeline, 182_100)
+    expect(leavingOf(timeline, current, 182_100, 600)?.scene.id).toBe('demo')
   })
 
   it('hat mitten in einer Szene, wenn since größer als fadeMs ist, nichts Ausgehendes', () => {

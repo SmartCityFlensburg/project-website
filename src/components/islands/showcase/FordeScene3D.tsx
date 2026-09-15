@@ -1347,18 +1347,19 @@ function Clouds() {
   )
 }
 
-function Rig({ active }: { active: boolean }) {
+// The drift starts over each time the harbour comes back into view.
+function Rig({ shown }: { shown: boolean }) {
   const camera = useThree((state) => state.camera)
   const elapsed = useRef(0)
 
   useEffect(() => {
-    if (active) {
+    if (shown) {
       elapsed.current = 0
     }
-  }, [active])
+  }, [shown])
 
   useFrame((_, delta) => {
-    if (active) {
+    if (shown) {
       elapsed.current += delta
     }
 
@@ -1370,7 +1371,7 @@ function Rig({ active }: { active: boolean }) {
   return null
 }
 
-function FordeModel({ active }: { active: boolean }) {
+function FordeModel({ shown }: { shown: boolean }) {
   return (
     <>
       <fogExp2 attach="fog" args={[fordeColors.fog, fordeScene.fogDensity]} />
@@ -1382,7 +1383,7 @@ function FordeModel({ active }: { active: boolean }) {
       <directionalLight position={[160, 38, -40]} intensity={0.9} color={fordeColors.skyLow} />
       <directionalLight position={[-70, 30, 90]} intensity={0.25} color={fordeColors.skyHigh} />
 
-      <Rig active={active} />
+      <Rig shown={shown} />
       <Clouds />
       <Water />
 
@@ -1456,8 +1457,11 @@ function ReleaseContextOnNavigate() {
  * slots. Building a webgl context up and down three hundred times over a fair
  * day is the reliable way to crash after two hours, the same reason the tour
  * canvas is hoisted.
+ *
+ * The title scene's own wipe covers the harbour before the scene ends, so the
+ * fade here only ever runs under an opaque layer.
  */
-export default function FordeScene3D({ active }: { active: boolean }) {
+export default function FordeScene3D({ shown }: { shown: boolean }) {
   // The sky is a css gradient behind a transparent canvas: no skybox to render,
   // no banding, and the fog colour blends straight into it at the horizon.
   const sky = useMemo(
@@ -1468,20 +1472,20 @@ export default function FordeScene3D({ active }: { active: boolean }) {
 
   return (
     <div
-      className="showcase-tour-fade pointer-events-none absolute inset-0 transition-opacity duration-500"
-      style={{ opacity: active ? 1 : 0, background: sky }}
-      aria-hidden={!active}
+      className="showcase-canvas-fade pointer-events-none absolute inset-0 transition-opacity duration-800"
+      style={{ opacity: shown ? 1 : 0, background: sky }}
+      aria-hidden={!shown}
     >
       <Canvas
         flat
         dpr={[1, 2]}
-        frameloop={active ? 'always' : 'demand'}
+        frameloop={shown ? 'always' : 'demand'}
         camera={{ fov: fordeScene.fov, near: 1, far: 900 }}
         gl={{ antialias: true, alpha: true }}
         className="h-full w-full"
       >
         <ReleaseContextOnNavigate />
-        <FordeModel active={active} />
+        <FordeModel shown={shown} />
       </Canvas>
     </div>
   )

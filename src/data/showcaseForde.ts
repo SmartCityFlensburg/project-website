@@ -17,6 +17,8 @@ const smoothstep = (value: number) => value * value * (3 - 2 * value)
 const lerp = (from: number, to: number, at: number) => from + (to - from) * at
 
 export const scene = {
+  // Spans the whole slide although the wipe covers the harbour a few seconds
+  // before its end, so the camera is still moving when it goes out of sight.
   seconds: TITLE_SECONDS,
   fov: 34,
   target: [0, 10, -170] as Vec3,

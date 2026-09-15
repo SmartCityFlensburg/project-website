@@ -24,6 +24,34 @@
 /* The booth loop deliberately ignores prefers-reduced-motion: it has no user
    whose system setting could be meant, and a still frame on a trade fair
    monitor reads as a crash. The rule above still applies everywhere else. */
+
+/* Every build animation carries a second entry: the same element lifts off
+   again when the scene's outro arrives, read from a property the layer sets.
+   The lift has no backwards fill, so until it starts the build alone decides
+   what shows; once it starts it is the later entry and wins. Both delays go
+   through inherited custom properties because the important shorthand would
+   beat any delay set inline. The layer adds a hold before the build so the
+   new text arrives after the old picture has dissolved, not during. */
+@keyframes showcase-lift {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes showcase-dim {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes showcase-rise {
   from {
     opacity: 0;
@@ -36,7 +64,10 @@
 }
 
 .showcase-rise {
-  animation: showcase-rise 620ms var(--ease-spring-settle) var(--showcase-delay, 0ms) both !important;
+  animation:
+    showcase-rise 620ms var(--ease-spring-settle)
+      calc(var(--showcase-layer-delay, 0ms) + var(--showcase-delay, 0ms)) both,
+    showcase-lift 700ms var(--ease-spring-settle) var(--showcase-outro-at, 1000000s) forwards !important;
 }
 
 /* The opening slide reveals its headline line by line from behind its own
@@ -54,7 +85,10 @@
 }
 
 .showcase-unmask {
-  animation: showcase-unmask 900ms var(--ease-spring-settle) var(--showcase-delay, 0ms) both !important;
+  animation:
+    showcase-unmask 900ms var(--ease-spring-settle)
+      calc(var(--showcase-layer-delay, 0ms) + var(--showcase-delay, 0ms)) both,
+    showcase-lift 700ms var(--ease-spring-settle) var(--showcase-outro-at, 1000000s) forwards !important;
 }
 
 /* The ground the opening slide's type stands on. It belongs to the type, not to
@@ -71,7 +105,41 @@
 }
 
 .showcase-veil {
-  animation: showcase-veil 1200ms ease-out var(--showcase-delay, 0ms) both !important;
+  animation: showcase-veil 1200ms ease-out
+    calc(var(--showcase-layer-delay, 0ms) + var(--showcase-delay, 0ms)) both !important;
+}
+
+/* The title's close. The pale ground sweeps across the harbour with a soft
+   leading edge, then the brand rises on the cleared plate. Neither lifts off
+   at the outro: the whole plate dissolves into the first photo instead. Timed
+   from the scene's own start, without the layer's hold: these follow the
+   scene's build, not the hand-over that opened it. */
+@keyframes showcase-wipe {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.showcase-wipe {
+  animation: showcase-wipe 1200ms cubic-bezier(0.65, 0, 0.35, 1) var(--showcase-delay, 0ms) both !important;
+}
+
+@keyframes showcase-emerge {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.showcase-emerge {
+  animation: showcase-emerge 900ms var(--ease-spring-settle) var(--showcase-delay, 0ms) both !important;
 }
 
 @keyframes showcase-rule-draw {
@@ -85,22 +153,23 @@
 
 .showcase-rule-draw {
   transform-origin: left center;
-  animation: showcase-rule-draw 700ms var(--ease-spring-settle) var(--showcase-delay, 0ms) both !important;
+  animation:
+    showcase-rule-draw 700ms var(--ease-spring-settle)
+      calc(var(--showcase-layer-delay, 0ms) + var(--showcase-delay, 0ms)) both,
+    showcase-lift 700ms var(--ease-spring-settle) var(--showcase-outro-at, 1000000s) forwards !important;
 }
 
-@keyframes showcase-sink {
-  from {
-    opacity: 1;
-    transform: none;
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-14px);
-  }
+/* The scene layers themselves. The leaving one dissolves on top of the new
+   one. Pure opacity, no travel: a photo that moves exposes its edge, and the
+   text has already lifted off on its own. A scene following one of the webgl
+   canvases rises out of the plate instead, over the same span the canvas took
+   to dip into it. */
+.showcase-leave {
+  animation: showcase-dim 1000ms ease-in-out both !important;
 }
 
-.showcase-sink {
-  animation: showcase-sink 600ms var(--ease-spring-settle) both !important;
+.showcase-enter {
+  animation: showcase-veil 800ms ease-out both !important;
 }
 
 /* Four Ken Burns directions for the full-bleed photos: 'in' grows the crop,
@@ -175,12 +244,13 @@
   animation: showcase-pan-contain linear both !important;
 }
 
-/* Same reasoning as above, for the act crossfade and the tour's fade-in:
-   an instant cut there reads as a glitch, not as respecting a setting. */
+/* Same reasoning as above, for the act crossfade and the two canvases' fades:
+   an instant cut there reads as a glitch, not as respecting a setting. The
+   canvas fade is the dip into the plate at the end of its scene. */
 .showcase-act-fade {
   transition-duration: 1200ms !important;
 }
 
-.showcase-tour-fade {
-  transition-duration: 500ms !important;
+.showcase-canvas-fade {
+  transition-duration: 800ms !important;
 }

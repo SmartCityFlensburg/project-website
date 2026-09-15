@@ -12,7 +12,10 @@
     "lint:ci": "astro check && eslint . --report-unused-disable-directives --max-warnings 0 && node scripts/check-i18n-parity.mjs",
     "fmt": "prettier --write .",
     "fmt:check": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "showcase:clips": "node scripts/fetch-showcase-clips.mjs",
+    "showcase:build": "VIDEO_BASE_URL=/showcase-clips astro check && VIDEO_BASE_URL=/showcase-clips astro build && node scripts/check-build-output.mjs",
+    "showcase:kiosk": "bash scripts/showcase-kiosk.sh"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.8",
@@ -50,6 +53,7 @@
     "postcss": "^8.5.28",
     "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
+    "serve": "^14.2.6",
     "sharp": "^0.35.4",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",

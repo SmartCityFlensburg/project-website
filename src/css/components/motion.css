@@ -53,3 +53,16 @@
 .showcase-sink {
   animation: showcase-sink 600ms var(--ease-spring-settle) both;
 }
+
+@keyframes showcase-pan {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.14) translate(-1.5%, -1%);
+  }
+}
+
+.showcase-pan {
+  animation: showcase-pan linear both;
+}

@@ -3,6 +3,7 @@ import { TranslationProvider } from '../../../i18n/TranslationProvider'
 import { showcaseScenes, type Act } from '../../../data/showcase'
 import { buildTimeline, leavingOf, sceneAt } from '../../../lib/showcase/timeline'
 import ShowcaseScene from './ShowcaseScene'
+import ShowcaseTour from './ShowcaseTour'
 
 interface Props {
   language: string
@@ -51,6 +52,9 @@ export default function ShowcaseLoop({ strings }: Props) {
           className="absolute inset-0 transition-colors duration-[1200ms]"
           style={{ backgroundColor: ACT_BACKGROUND[current.scene.act] }}
         />
+        <div className="absolute inset-y-0 right-0 w-[63%]">
+          <ShowcaseTour active={current.scene.visual.kind === 'tour'} />
+        </div>
         <div className="absolute inset-0">
           {leaving && (
             <div key={`${leaving.scene.id}-out`} className="showcase-sink absolute inset-0">

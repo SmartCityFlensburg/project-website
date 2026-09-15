@@ -33,7 +33,7 @@ interface Props {
 const ACT_BACKGROUND: Record<Act, string> = {
   lage: '#2D4A27',
   boden: '#F7F5EF',
-  software: '#FFFFFF',
+  software: '#F7F5EF',
   fahrt: '#2D4A27',
 }
 

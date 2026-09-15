@@ -62,18 +62,22 @@ function PannedImage({
   )
 }
 
-// A screencast's own left/right edge must not sit flush against the plate
-// edge, and it reads as an exhibit rather than a cropped rectangle once it
-// carries margin, rounded corners and a soft shadow. Shared by the video and
-// its screenshot fallback so both get the same treatment.
+// Every clip and every screenshot standing in for one is 16:9, so the frame is
+// cut to that ratio instead of filling the column: a frame that fills the
+// column leaves a third of its own height as bare white above and below the
+// recording. Capped in width as well, so the frame clears the QR corner and
+// keeps the same rect from one screencast scene to the next — that identity is
+// what lets the hand-over read as a change of content rather than of picture.
 function ExhibitMedia({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-full w-full items-center justify-center p-10">
       <div
-        className="relative h-full w-full overflow-hidden rounded-[1.5rem] bg-white p-3 ring-1 ring-[#2D4A27]/10"
+        className="relative w-full max-w-[68rem] rounded-[1.5rem] bg-white p-3 ring-1 ring-[#2D4A27]/10"
         style={{ boxShadow: '0 2rem 4.5rem -1.75rem rgba(45,74,39,0.4)' }}
       >
-        {children}
+        <div className="aspect-video w-full overflow-hidden rounded-[1.05rem]">
+          {children}
+        </div>
       </div>
     </div>
   )

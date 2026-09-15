@@ -13,7 +13,10 @@ const { title, description, language } = Astro.props
 ---
 
 <!doctype html>
-<html lang={language}>
+<!-- site.css reserves a scrollbar gutter on html. The booth loop never scrolls,
+     so in browsers with classic scrollbars that gutter is left as a bare strip
+     of body background down the right edge. -->
+<html lang={language} style="scrollbar-gutter: auto">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

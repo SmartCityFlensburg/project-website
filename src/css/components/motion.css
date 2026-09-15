@@ -36,7 +36,8 @@
 }
 
 .showcase-rise {
-  animation: showcase-rise 620ms var(--ease-spring-settle) both !important;
+  animation: showcase-rise 620ms var(--ease-spring-settle) var(--showcase-delay, 0ms) both
+    !important;
 }
 
 @keyframes showcase-sink {

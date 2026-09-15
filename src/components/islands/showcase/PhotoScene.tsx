@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useT } from '../../../i18n/useT'
 import type { Scene } from '../../../data/showcase'
 import { optionalText } from '../../../lib/showcase/text'
+import { delay } from '../../../lib/showcase/delay'
 
 export default function PhotoScene({ scene, children }: { scene: Scene; children?: ReactNode }) {
   const t = useT()
@@ -27,20 +28,20 @@ export default function PhotoScene({ scene, children }: { scene: Scene; children
         )}
         <p
           className="showcase-rise mt-4 font-lato text-6xl leading-[1.08] font-light tracking-[-0.022em] text-[#E8EBCC]"
-          style={{ animationDelay: '80ms' }}
+          style={delay(80)}
         >
           {t(`scenes.${scene.id}.statement`)}
         </p>
         <p
           className="showcase-rise mt-5 max-w-[60ch] font-nunito-sans text-xl leading-relaxed text-[#E8EBCCB0]"
-          style={{ animationDelay: '160ms' }}
+          style={delay(160)}
         >
           {t(`scenes.${scene.id}.body`)}
         </p>
         {source && (
           <p
             className="showcase-rise mt-5 font-nunito-sans text-base text-[#E8EBCC70]"
-            style={{ animationDelay: '240ms' }}
+            style={delay(240)}
           >
             {source}
           </p>

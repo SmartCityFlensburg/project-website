@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useT } from '../../../i18n/useT'
 import type { Scene } from '../../../data/showcase'
 import { optionalText } from '../../../lib/showcase/text'
+import { delay } from '../../../lib/showcase/delay'
 
 interface Props {
   scene: Scene
@@ -25,12 +26,12 @@ export default function StatementScene({ scene, dark, children }: Props) {
       </p>
       <div
         className="showcase-rise mt-8 h-px w-12"
-        style={{ animationDelay: '80ms', backgroundColor: dark ? '#E8EBCC66' : '#8B735566' }}
+        style={{ ...delay(80), backgroundColor: dark ? '#E8EBCC66' : '#8B735566' }}
       />
       {body && (
         <p
           className="showcase-rise mt-8 max-w-[52ch] font-nunito-sans text-2xl leading-relaxed"
-          style={{ animationDelay: '160ms', color: dark ? '#E8EBCCB0' : '#1F1F1F' }}
+          style={{ ...delay(160), color: dark ? '#E8EBCCB0' : '#1F1F1F' }}
         >
           {body}
         </p>
@@ -38,7 +39,7 @@ export default function StatementScene({ scene, dark, children }: Props) {
       {source && (
         <p
           className="showcase-rise mt-6 font-nunito-sans text-base"
-          style={{ animationDelay: '240ms', color: dark ? '#E8EBCC70' : '#8B7355' }}
+          style={{ ...delay(240), color: dark ? '#E8EBCC70' : '#8B7355' }}
         >
           {source}
         </p>

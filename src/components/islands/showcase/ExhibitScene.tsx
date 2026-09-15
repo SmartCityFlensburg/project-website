@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useT } from '../../../i18n/useT'
 import type { Scene } from '../../../data/showcase'
 import { optionalText } from '../../../lib/showcase/text'
+import { delay } from '../../../lib/showcase/delay'
 
 interface Props {
   scene: Scene
@@ -34,20 +35,20 @@ export default function ExhibitScene({ scene, dark, children }: Props) {
         )}
         <p
           className="showcase-rise mt-5 font-lato text-5xl leading-[1.1] font-light tracking-[-0.022em]"
-          style={{ animationDelay: '80ms', color: dark ? '#E8EBCC' : '#2D4A27' }}
+          style={{ ...delay(80), color: dark ? '#E8EBCC' : '#2D4A27' }}
         >
           {t(`scenes.${scene.id}.statement`)}
         </p>
         <p
           className="showcase-rise mt-6 max-w-[46ch] font-nunito-sans text-xl leading-relaxed"
-          style={{ animationDelay: '160ms', color: dark ? '#E8EBCCB0' : '#1F1F1F' }}
+          style={{ ...delay(160), color: dark ? '#E8EBCCB0' : '#1F1F1F' }}
         >
           {t(`scenes.${scene.id}.body`)}
         </p>
         {source && (
           <p
             className="showcase-rise mt-6 font-nunito-sans text-base"
-            style={{ animationDelay: '240ms', color: dark ? '#E8EBCC70' : '#8B7355' }}
+            style={{ ...delay(240), color: dark ? '#E8EBCC70' : '#8B7355' }}
           >
             {source}
           </p>

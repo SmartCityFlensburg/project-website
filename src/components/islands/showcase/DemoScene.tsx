@@ -1,5 +1,6 @@
 import { useT } from '../../../i18n/useT'
 import type { Scene } from '../../../data/showcase'
+import { delay } from '../../../lib/showcase/delay'
 
 // Same address as PressContact.astro / ContactSection.astro. Not in a locale
 // catalog: an email address needs no translation.
@@ -18,7 +19,7 @@ export default function DemoScene({ scene }: { scene: Scene }) {
       </p>
       <p
         className="showcase-rise mt-8 max-w-[52ch] font-nunito-sans text-2xl leading-relaxed"
-        style={{ animationDelay: '80ms', color: '#E8EBCCB0' }}
+        style={{ ...delay(80), color: '#E8EBCCB0' }}
       >
         {t(`scenes.${scene.id}.body`)}
       </p>
@@ -26,12 +27,9 @@ export default function DemoScene({ scene }: { scene: Scene }) {
         src="/assets/showcase/qr-demo.svg"
         alt=""
         className="showcase-rise mt-12 h-64 w-64 rounded-lg bg-white p-4 ring-1 ring-black/10"
-        style={{ animationDelay: '160ms' }}
+        style={delay(160)}
       />
-      <div
-        className="showcase-rise mt-10 flex flex-col items-center gap-2"
-        style={{ animationDelay: '240ms' }}
-      >
+      <div className="showcase-rise mt-10 flex flex-col items-center gap-2" style={delay(240)}>
         <p
           className="font-lato text-3xl font-light tracking-[-0.022em]"
           style={{ color: '#E8EBCC' }}

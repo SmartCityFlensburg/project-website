@@ -4,8 +4,11 @@ import {
   cloudSpan,
   cloudX,
   clouds,
+  farShore,
   quay,
+  quayHouses,
   scene,
+  spires,
   swayAngle,
   waveHeight,
   wind,
@@ -81,6 +84,69 @@ describe('the promenade', () => {
     }
 
     expect(quay.top).toBeGreaterThan(highest)
+  })
+})
+
+describe('the harbour front', () => {
+  // A row that ends inside the frame leaves bare bank at the edge, and the
+  // camera's drift to port exposes more of it with every second.
+  test('runs past a widescreen frame at both ends of the drift', () => {
+    const aspect = 16 / 9
+    const nearestZ = Math.max(...quayHouses.map((house) => house.z))
+    const leftmost = Math.min(...quayHouses.map((house) => house.x - house.width / 2))
+    const rightmost = Math.max(...quayHouses.map((house) => house.x + house.width / 2))
+
+    for (const t of [0, scene.seconds]) {
+      const { position, target } = cameraAt(t)
+      const distance = position[2] - nearestZ
+      const along = distance / (position[2] - target[2])
+      const centre = position[0] + (target[0] - position[0]) * along
+      const halfWidth = Math.tan((scene.fov * Math.PI) / 360) * distance * aspect
+
+      expect(leftmost).toBeLessThan(centre - halfWidth)
+      expect(rightmost).toBeGreaterThan(centre + halfWidth)
+    }
+  })
+
+  // Houses are set down by a running cursor, so a wrong gap would stack them.
+  test('leaves no two houses of a row standing in each other', () => {
+    const rows = new Map<number, typeof quayHouses>()
+    for (const house of quayHouses) {
+      const rowZ = house.z < -205 ? -214 : -196
+      rows.set(rowZ, [...(rows.get(rowZ) ?? []), house])
+    }
+
+    for (const row of rows.values()) {
+      const sorted = [...row].sort((a, b) => a.x - b.x)
+      for (let i = 1; i < sorted.length; i++) {
+        const left = sorted[i - 1]
+        const right = sorted[i]
+        expect(right.x - right.width / 2).toBeGreaterThanOrEqual(left.x + left.width / 2)
+      }
+    }
+  })
+
+  test('mixes all three kinds of house into the front', () => {
+    const kinds = new Set(quayHouses.map((house) => house.kind))
+    expect(kinds).toEqual(new Set(['gable', 'eaves', 'warehouse']))
+  })
+
+  test('stands on the far shore', () => {
+    for (const house of quayHouses) {
+      expect(Math.abs(house.x) + house.width / 2).toBeLessThan(farShore.width / 2)
+      expect(Math.abs(house.z - farShore.centerZ)).toBeLessThan(farShore.depth / 2)
+    }
+  })
+
+  // A tower growing out of a neighbour's roof reads as a mistake, not as a nave.
+  test('leaves the church towers standing free', () => {
+    for (const spire of spires) {
+      for (const house of quayHouses) {
+        const apart = Math.abs(house.x - spire.x) >= (spire.width + house.width) / 2
+        const inFront = house.z - house.depth / 2 > spire.z + spire.width / 2
+        expect(apart || inFront).toBe(true)
+      }
+    }
   })
 })
 

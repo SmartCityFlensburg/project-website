@@ -202,12 +202,31 @@ export const treePit = {
 /** How tall a house's stone base stands before the first row of windows. */
 export const HOUSE_PLINTH = 0.85
 
-// Lime plaster in the tones the harbour front is actually painted in, with one
-// brick red among them. Neighbours never share a colour, which is what keeps
-// the row from reading as one long wall.
-export const houseTones = ['#E4E2D6', '#DCD2C0', '#E9E6DC', '#CFBCA8', '#D7DBD3'] as const
+// Lime plaster in the tones the harbour front is actually painted in: the pale
+// ones first, then the ochre, the oxblood red and the Baltic blue-grey that turn
+// up once or twice in every Flensburg street. The last is the dark brick of the
+// warehouses, which is why it stands outside the plaster sequence.
+export const houseTones = [
+  '#E4E2D6',
+  '#DCD2C0',
+  '#E9E6DC',
+  '#CFBCA8',
+  '#D7DBD3',
+  '#D9BB7C',
+  '#B5695A',
+  '#BFCBD0',
+  '#8E5B49',
+] as const
 
-export const roofTones = ['#9A5F4A', '#8A503E', '#A66C54', '#7C4738'] as const
+/** Index of the warehouse brick in houseTones. */
+export const WAREHOUSE_BRICK = 8
+
+/** Index of the warehouse slate in roofTones. */
+export const WAREHOUSE_SLATE = 4
+
+// Pantiles in four reds, then slate and a dark tar-paper brown for the roofs
+// that were never tiled.
+export const roofTones = ['#9A5F4A', '#8A503E', '#A66C54', '#7C4738', '#5E6468', '#6B4A3E'] as const
 
 export interface Chimney {
   /** Offset along the ridge from the house's centre. */
@@ -215,7 +234,18 @@ export interface Chimney {
   height: number
 }
 
-export interface GableHouse {
+/**
+ * gable: the ridge runs away from the water and the gable faces it, the
+ *   merchant house that gives the front its serrated edge.
+ * eaves: the ridge runs along the street and the long roof slope faces the
+ *   water, with dormers in it.
+ * warehouse: a wide brick store with hatches instead of windows and a hoist
+ *   beam under the gable.
+ */
+export type HouseKind = 'gable' | 'eaves' | 'warehouse'
+
+export interface HarbourHouse {
+  kind: HouseKind
   x: number
   z: number
   width: number
@@ -230,35 +260,200 @@ export interface GableHouse {
   /** Window rows above the plinth, and window columns across the facade. */
   floors: number
   bays: number
+  /** A front door in the ground floor, rather than a shop window across it. */
+  door: boolean
+  /** A light string course between the ground floor and the first. */
+  banded: boolean
+  /** Dormers in the front slope; only an eaves house has room for them. */
+  dormers: number
   chimneys: readonly Chimney[]
 }
 
-// The harbour front: narrow gabled houses standing shoulder to shoulder, which
-// is what gives the Hafenspitze its serrated edge against the sky.
-export const quayHouses: readonly GableHouse[] = Array.from({ length: 24 }, (_, i) => {
-  const wobble = Math.sin(i * GOLDEN)
-  const gap = Math.cos(i * 0.9) * 1.2
-  const width = 8.2 + wobble * 1.4
-  const wallHeight = 9.5 + wobble * 2.6
+export interface Spire {
+  x: number
+  z: number
+  width: number
+  towerHeight: number
+  spireHeight: number
+  /** Bare brick rather than lime plaster, the way Flensburg's churches are built. */
+  brick: boolean
+  /** Four small pinnacles at the corners where the spire leaves the tower. */
+  pinnacles: boolean
+  /** A lantern set between the tower and the spire: the baroque cap, not the gothic needle. */
+  lantern: boolean
+  clock: boolean
+}
+
+/** How tall a storey of tower windows is, from sill to sill. */
+export const TOWER_STOREY = 4.6
+
+/** The height of the belfry, the open top storey that carries the bells. */
+export const BELFRY_HEIGHT = 5
+
+// Four towers, none alike: the tall needle over the old town, the baroque
+// lantern beside it, a small parish spire behind and a brick tower out on the
+// right, where the row would otherwise run on unbroken to the edge of the frame.
+export const spires: readonly Spire[] = [
+  {
+    x: -30,
+    z: -216,
+    width: 7,
+    towerHeight: 26,
+    spireHeight: 17,
+    brick: false,
+    pinnacles: true,
+    lantern: false,
+    clock: true,
+  },
+  {
+    x: 36,
+    z: -224,
+    width: 6,
+    towerHeight: 21,
+    spireHeight: 13,
+    brick: false,
+    pinnacles: false,
+    lantern: true,
+    clock: true,
+  },
+  {
+    x: 9,
+    z: -232,
+    width: 5.4,
+    towerHeight: 17,
+    spireHeight: 10.5,
+    brick: false,
+    pinnacles: false,
+    lantern: false,
+    clock: false,
+  },
+  {
+    x: 112,
+    z: -226,
+    width: 6.4,
+    towerHeight: 20,
+    spireHeight: 12.5,
+    brick: true,
+    pinnacles: true,
+    lantern: false,
+    clock: true,
+  },
+]
+
+interface HouseRow {
+  /** The stretch of bank the row fills along x. */
+  from: number
+  to: number
+  z: number
+  /** How far a house may stand off the row's line. */
+  stagger: number
+  wallHeight: number
+  /** Offsets the sequence, so the back row repeats nothing the front one does. */
+  seed: number
+}
+
+// A warehouse every ninth house and an eaves house every third: enough of each
+// to break the gables' rhythm, not so many that the front stops being gabled.
+function kindOf(n: number): HouseKind {
+  if (n % 9 === 4) {
+    return 'warehouse'
+  }
+  return n % 3 === 2 ? 'eaves' : 'gable'
+}
+
+const PLASTER_TONES = 8
+const PANTILE_TONES = 4
+
+function houseOf(n: number, row: HouseRow, x: number, width: number): HarbourHouse {
+  const kind = kindOf(n)
+  const wobble = Math.sin(n * GOLDEN)
+  const rise = kind === 'warehouse' ? 1.25 : kind === 'eaves' ? 0.88 : 1
+  const wallHeight = row.wallHeight * rise + wobble * 2.6
+  const storey = kind === 'warehouse' ? 3.6 : 3.1
+  const chimneySpread = kind === 'eaves' ? width * 0.3 : 2.1 + Math.abs(wobble) * 0.8
 
   return {
-    x: -118 + i * 10.2 + gap,
-    z: -196 + Math.sin(i * 2.2) * 6,
+    kind,
+    x,
+    z: row.z + Math.sin(n * 2.2) * row.stagger,
     width,
-    depth: 9,
+    depth: kind === 'eaves' ? 8 : 9,
     wallHeight,
-    roofHeight: 5 + Math.cos(i * GOLDEN) * 1.4,
-    stepped: i % 4 === 1,
-    wallTone: (i * 3) % houseTones.length,
-    roofTone: (i * 2 + 1) % roofTones.length,
-    floors: Math.max(2, Math.round((wallHeight - HOUSE_PLINTH) / 3.1)),
-    bays: width > 8.4 ? 3 : 2,
-    chimneys: Array.from({ length: i % 3 === 0 ? 2 : 1 }, (_, k) => ({
-      at: (k === 0 ? -1 : 1) * (2.1 + Math.abs(wobble) * 0.8),
-      height: 1.7 + Math.abs(Math.cos(i * 1.3 + k)) * 0.9,
+    roofHeight: (kind === 'eaves' ? 4.2 : 5) + Math.cos(n * GOLDEN) * 1.4,
+    stepped: kind === 'gable' && n % 4 === 1,
+    wallTone: kind === 'warehouse' ? WAREHOUSE_BRICK : (n * 3) % PLASTER_TONES,
+    roofTone:
+      kind === 'warehouse' ? WAREHOUSE_SLATE : (n * 2 + 1) % (n % 7 === 6 ? 6 : PANTILE_TONES),
+    floors: Math.max(2, Math.round((wallHeight - HOUSE_PLINTH) / storey)),
+    bays: kind === 'warehouse' ? 4 : width > 8.4 ? 3 : 2,
+    door: kind !== 'warehouse' && n % 5 !== 0,
+    banded: kind !== 'warehouse' && n % 3 === 0,
+    dormers: kind === 'eaves' ? (width > 10.5 ? 2 : 1) : 0,
+    chimneys: Array.from({ length: n % 3 === 0 ? 2 : 1 }, (_, k) => ({
+      at: (k === 0 ? -1 : 1) * chimneySpread,
+      height: 1.7 + Math.abs(Math.cos(n * 1.3 + k)) * 0.9,
     })),
   }
+}
+
+// Houses are set down one after another, each as wide as its kind wants, so
+// the row has the uneven beat of a street built one plot at a time instead of
+// the tick of a fixed pitch.
+function houseRow(row: HouseRow): readonly HarbourHouse[] {
+  const houses: HarbourHouse[] = []
+  let cursor = row.from
+
+  for (let i = 0; cursor < row.to; i++) {
+    const n = i + row.seed
+    const kind = kindOf(n)
+    const wobble = Math.sin(n * GOLDEN)
+    const width =
+      kind === 'warehouse'
+        ? 12.5 + wobble
+        : kind === 'eaves'
+          ? 10.4 + wobble * 1.4
+          : 7.6 + wobble * 1.4
+    const gap = 0.4 + Math.abs(Math.cos(n * 0.9)) * 1.4
+
+    houses.push(houseOf(n, row, cursor + width / 2, width))
+    cursor += width + gap
+  }
+
+  return houses
+}
+
+function crowdsASpire(house: HarbourHouse): boolean {
+  return spires.some((spire) => Math.abs(house.x - spire.x) < (spire.width + house.width) / 2 + 0.5)
+}
+
+// The harbour front: narrow gabled houses standing shoulder to shoulder, which
+// is what gives the Hafenspitze its serrated edge against the sky. The row runs
+// well past a widescreen frame at either end of the camera's drift: a bank that
+// turns bare at the edge reads as the end of town, not as the end of the frame.
+const harbourFront = houseRow({
+  from: -206,
+  to: 206,
+  z: -196,
+  stagger: 6,
+  wallHeight: 9.5,
+  seed: 0,
 })
+
+// A second row, started half a house along, so its roofs show in the gaps of
+// the front one. It stands a little taller: the front row already sits close to
+// the horizon, and a back house of the same height would hide behind it
+// entirely. It leaves the church towers standing free rather than growing out
+// of a roof.
+const backStreet = houseRow({
+  from: -201,
+  to: 206,
+  z: -214,
+  stagger: 3.5,
+  wallHeight: 10.6,
+  seed: 17,
+}).filter((house) => !crowdsASpire(house))
+
+export const quayHouses: readonly HarbourHouse[] = [...harbourFront, ...backStreet]
 
 // The bank the harbour front stands on. It reaches past the outermost house so
 // the row never ends in open water, and its top clears the wave crests.
@@ -270,20 +465,6 @@ export const farShore = {
   /** Carried well below the waterline, so no swell undercuts the bank. */
   height: 9,
 } as const
-
-export interface Spire {
-  x: number
-  z: number
-  width: number
-  towerHeight: number
-  spireHeight: number
-}
-
-export const spires: readonly Spire[] = [
-  { x: -30, z: -216, width: 7, towerHeight: 26, spireHeight: 17 },
-  { x: 36, z: -224, width: 6, towerHeight: 21, spireHeight: 13 },
-  { x: 9, z: -232, width: 5.4, towerHeight: 17, spireHeight: 10.5 },
-]
 
 export interface Mast {
   /** Offset along the hull from its centre. */
@@ -415,13 +596,26 @@ export const fordeColors = {
   // one warm note that keeps the town off the blue.
   roof: '#9A5F4A',
   spire: '#5F8A6E',
+  // Lighter than the roofs on purpose: a brick tower under a brick-red roof
+  // tone would merge with the row it stands in.
+  towerBrick: '#A97962',
+  // The louvres of the belfry, darker than glass: they are open to the bells.
+  belfry: '#33414A',
+  clockFace: '#F3EFE3',
+  finial: '#D9C27A',
   housePlinth: '#B3ADA0',
   // The fascia under the eaves. A dark line there is what parts roof from wall
   // at this distance, where the shadow itself is far too soft to do it.
   houseEaves: '#8C8578',
   houseRidge: '#6E4335',
   windowGlass: '#4F6169',
+  // The frame around the glass. A light edge is what turns a dark rectangle
+  // into a sash window at this distance, and it is the one detail every
+  // painted harbour front shares.
+  windowFrame: '#F4F1E8',
   shopfront: '#3E4E55',
+  door: '#3D5046',
+  hatch: '#4A423B',
   chimney: '#8C6552',
   // A shade cooler and darker than the near promenade, or the two grounds read
   // as one plane and the Förde between them loses its depth.

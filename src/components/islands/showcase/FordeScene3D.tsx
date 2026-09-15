@@ -20,6 +20,7 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {
+  BELFRY_HEIGHT,
   cameraAt,
   cloudX,
   clouds,
@@ -35,12 +36,14 @@ import {
   scene as fordeScene,
   spires,
   swayAngle,
+  TOWER_STOREY,
   treePit,
   water,
   waveHeight,
-  type GableHouse,
+  type HarbourHouse,
   type QuayTree,
   type Ship,
+  type Spire,
   type Vec3,
 } from '../../../data/showcaseForde'
 
@@ -148,16 +151,36 @@ function extruded(shape: Shape, depth: number): BufferGeometry {
   return geometry
 }
 
-function gableRoof(house: GableHouse): BufferGeometry {
-  const overhang = house.stepped ? 0 : EAVES_OVERHANG
-  const height = house.stepped ? house.roofHeight * 0.88 : house.roofHeight
+/** A ridge roof over a `span`, `length` long, with its ridge running along z. */
+function pitchedRoof(span: number, height: number, length: number): BufferGeometry {
   const shape = new Shape()
-  shape.moveTo(-house.width / 2 - overhang, 0)
-  shape.lineTo(house.width / 2 + overhang, 0)
+  shape.moveTo(-span / 2, 0)
+  shape.lineTo(span / 2, 0)
   shape.lineTo(0, height)
   shape.closePath()
 
-  return extruded(shape, house.depth + (house.stepped ? 0 : EAVES_DEPTH))
+  return extruded(shape, length)
+}
+
+const QUARTER_TURN = new Matrix4().makeRotationY(Math.PI / 2)
+
+/** The roof in the house's frame: a gable house's ridge runs along z, an eaves house's along x. */
+function houseRoof(house: HarbourHouse): BufferGeometry {
+  if (house.kind === 'eaves') {
+    return pitchedRoof(
+      house.depth + 2 * EAVES_OVERHANG,
+      house.roofHeight,
+      house.width + EAVES_DEPTH,
+    ).applyMatrix4(QUARTER_TURN)
+  }
+
+  const overhang = house.stepped ? 0 : EAVES_OVERHANG
+  const height = house.stepped ? house.roofHeight * 0.88 : house.roofHeight
+  return pitchedRoof(
+    house.width + 2 * overhang,
+    height,
+    house.depth + (house.stepped ? 0 : EAVES_DEPTH),
+  )
 }
 
 /**
@@ -165,7 +188,7 @@ function gableRoof(house: GableHouse): BufferGeometry {
  * narrow crest. Built as a plate standing just proud of the gable wall, so the
  * ordinary roof can sit behind it and the silhouette is all steps.
  */
-function steppedGable(house: GableHouse): BufferGeometry {
+function steppedGable(house: HarbourHouse): BufferGeometry {
   const width = house.width + 0.3
   const steps = 3
   // Wide enough to read as the gable's crown. A narrow one reads as a mast or
@@ -193,55 +216,206 @@ function steppedGable(house: GableHouse): BufferGeometry {
   return extruded(shape, 0.5)
 }
 
+/** Which way a wall faces: the front toward the water, or a flank along ±x. */
+type Facing = 'front' | -1 | 1
+
 /**
- * Windows, as openings a little proud of the wall rather than set into it: at
- * a quarter of a kilometre a reveal is invisible, but the dark rectangle is
- * the whole reason the row reads as houses and not as blocks.
+ * An opening a little proud of a wall, with a light frame around it when it
+ * has one. The frame stands a shade less proud than the glass, so the dark pane
+ * is what catches the eye and the frame only edges it.
  */
-function houseWindows(house: GableHouse): BufferGeometry[] {
+function opening(
+  house: HarbourHouse,
+  facing: Facing,
+  across: number,
+  y: number,
+  width: number,
+  height: number,
+  tone: string,
+  framed = true,
+): BufferGeometry[] {
   const parts: BufferGeometry[] = []
-  const front = house.depth / 2
+  const wall = facing === 'front' ? house.depth / 2 : house.width / 2
+  const out = (proud: number) => wall + proud
+
+  const box = (proud: number, thickness: number, w: number, h: number) =>
+    facing === 'front'
+      ? placed([across, y, out(proud)], [w, h, thickness])
+      : placed([facing * out(proud), y, across], [thickness, h, w])
+
+  if (framed) {
+    parts.push(
+      painted(unitBox, box(0.02, 0.08, width + 0.3, height + 0.3), fordeColors.windowFrame),
+    )
+  }
+  parts.push(painted(unitBox, box(0.05, 0.12, width, height), tone))
+
+  return parts
+}
+
+function warehouseOpenings(house: HarbourHouse): BufferGeometry[] {
+  const parts: BufferGeometry[] = []
   const storey = (house.wallHeight - HOUSE_PLINTH) / house.floors
   const bayWidth = house.width / house.bays
 
+  // Small hatches with shutters rather than windows, and a stack of loading
+  // doors up the middle under the hoist beam: a store, not a home.
   for (let floor = 0; floor < house.floors; floor++) {
-    const shop = floor === 0
     const y = HOUSE_PLINTH + (floor + 0.5) * storey
-    const height = Math.min(shop ? 2.1 : 1.5, storey * (shop ? 0.72 : 0.55))
-    const width = Math.min(shop ? 1.9 : 1.25, bayWidth * (shop ? 0.72 : 0.5))
-    const tone = shop ? fordeColors.shopfront : fordeColors.windowGlass
-
     for (let bay = 0; bay < house.bays; bay++) {
       const x = -house.width / 2 + bayWidth * (bay + 0.5)
-      parts.push(painted(unitBox, placed([x, y, front], [width, height, 0.12]), tone))
+      parts.push(...opening(house, 'front', x, y, 0.9, 0.9, fordeColors.hatch, false))
     }
-
-    // The outermost houses are seen well off their fronts, so the flanks carry
-    // a couple of bays too or they read as blank slabs at the ends of the row.
-    for (const side of [-1, 1]) {
+    for (const side of [-1, 1] as const) {
       for (let bay = 0; bay < 2; bay++) {
         const z = -house.depth / 2 + (house.depth / 2) * (bay + 0.5)
-        parts.push(
-          painted(unitBox, placed([(side * house.width) / 2, y, z], [0.12, height, width]), tone),
-        )
+        parts.push(...opening(house, side, z, y, 0.9, 0.9, fordeColors.hatch, false))
       }
     }
+    parts.push(...opening(house, 'front', 0, y, 1.3, 1.7, fordeColors.hatch, false))
   }
 
-  // A hoist door in the gable, where the merchant houses took goods in.
+  const beamY = house.wallHeight + house.roofHeight * 0.55
   parts.push(
+    ...opening(
+      house,
+      'front',
+      0,
+      house.wallHeight + house.roofHeight * 0.3,
+      1.3,
+      1.5,
+      fordeColors.hatch,
+      false,
+    ),
     painted(
       unitBox,
-      placed([0, house.wallHeight + house.roofHeight * 0.34, front], [0.85, 1, 0.12]),
-      fordeColors.windowGlass,
+      placed([0, beamY, house.depth / 2 + 0.9], [0.3, 0.3, 2.2]),
+      fordeColors.houseEaves,
     ),
   )
 
   return parts
 }
 
-function houseGeometry(house: GableHouse): BufferGeometry[] {
-  const roofSpan = house.width + (house.stepped ? 0 : 2 * EAVES_OVERHANG)
+/**
+ * Windows as openings a little proud of the wall rather than set into it: at a
+ * quarter of a kilometre a reveal is invisible, but the dark rectangle is the
+ * whole reason the row reads as houses and not as blocks.
+ */
+function houseOpenings(house: HarbourHouse): BufferGeometry[] {
+  if (house.kind === 'warehouse') {
+    return warehouseOpenings(house)
+  }
+
+  const parts: BufferGeometry[] = []
+  const storey = (house.wallHeight - HOUSE_PLINTH) / house.floors
+  const bayWidth = house.width / house.bays
+  const doorBay = house.bays === 3 ? 1 : 0
+
+  for (let floor = 0; floor < house.floors; floor++) {
+    const ground = floor === 0
+    const shop = ground && !house.door
+    const y = HOUSE_PLINTH + (floor + 0.5) * storey
+    const height = Math.min(shop ? 2.1 : ground ? 1.8 : 1.5, storey * (shop ? 0.72 : 0.55))
+    const width = Math.min(shop ? 1.9 : 1.25, bayWidth * (shop ? 0.72 : 0.5))
+    const tone = shop ? fordeColors.shopfront : fordeColors.windowGlass
+
+    for (let bay = 0; bay < house.bays; bay++) {
+      const x = -house.width / 2 + bayWidth * (bay + 0.5)
+      if (ground && house.door && bay === doorBay) {
+        parts.push(...opening(house, 'front', x, HOUSE_PLINTH + 1.15, 1.1, 2.3, fordeColors.door))
+      } else {
+        parts.push(...opening(house, 'front', x, y, width, height, tone))
+      }
+    }
+
+    // The outermost houses are seen well off their fronts, so the flanks carry
+    // a couple of bays too or they read as blank slabs at the ends of the row.
+    for (const side of [-1, 1] as const) {
+      for (let bay = 0; bay < 2; bay++) {
+        const z = -house.depth / 2 + (house.depth / 2) * (bay + 0.5)
+        parts.push(...opening(house, side, z, y, width, height, tone))
+      }
+    }
+  }
+
+  if (house.banded) {
+    parts.push(
+      painted(
+        unitBox,
+        placed([0, HOUSE_PLINTH + storey, 0], [house.width + 0.1, 0.18, house.depth + 0.1]),
+        fordeColors.windowFrame,
+      ),
+    )
+  }
+
+  // A hoist door in the gable, where the merchant houses took goods in.
+  if (house.kind === 'gable') {
+    parts.push(
+      ...opening(
+        house,
+        'front',
+        0,
+        house.wallHeight + house.roofHeight * 0.34,
+        0.85,
+        1,
+        fordeColors.windowGlass,
+      ),
+    )
+  }
+
+  return parts
+}
+
+/** Gable dormers in the front slope of an eaves house, each with its own window. */
+function dormers(house: HarbourHouse): BufferGeometry[] {
+  const parts: BufferGeometry[] = []
+  const slope = house.depth / 2 + EAVES_OVERHANG
+  const face = house.depth * 0.28
+  const sill = house.wallHeight + house.roofHeight * (1 - face / slope)
+  const width = 1.5
+  const depth = 1.4
+  const spots = house.dormers === 2 ? [-house.width * 0.25, house.width * 0.25] : [0]
+
+  for (const x of spots) {
+    parts.push(
+      painted(
+        unitBox,
+        placed([x, sill + 0.2, face - depth / 2], [width, 1.6, depth]),
+        houseTones[house.wallTone],
+      ),
+      painted(
+        pitchedRoof(width + 0.3, 0.7, depth + 0.2),
+        new Matrix4().makeTranslation(x, sill + 1, face - depth / 2),
+        roofTones[house.roofTone],
+      ),
+      painted(
+        unitBox,
+        placed([x, sill + 0.25, face + 0.02], [1, 1.1, 0.08]),
+        fordeColors.windowFrame,
+      ),
+      painted(
+        unitBox,
+        placed([x, sill + 0.25, face + 0.05], [0.7, 0.8, 0.12]),
+        fordeColors.windowGlass,
+      ),
+    )
+  }
+
+  return parts
+}
+
+function houseGeometry(house: HarbourHouse): BufferGeometry[] {
+  const eaves = house.kind === 'eaves'
+  const overhang = house.stepped ? 0 : EAVES_OVERHANG
+  const ridge = house.wallHeight + house.roofHeight
+  const fasciaSize: Vec3 = eaves
+    ? [house.width + EAVES_DEPTH, FASCIA_HEIGHT, house.depth + 2 * EAVES_OVERHANG]
+    : [house.width + 2 * overhang, FASCIA_HEIGHT, house.depth + EAVES_DEPTH]
+  const ridgeSize: Vec3 = eaves
+    ? [house.width + EAVES_DEPTH, 0.26, 0.4]
+    : [0.4, 0.26, house.depth + EAVES_DEPTH]
+
   const parts = [
     painted(
       unitBox,
@@ -257,26 +431,17 @@ function houseGeometry(house: GableHouse): BufferGeometry[] {
     ),
     painted(
       unitBox,
-      placed(
-        [0, house.wallHeight - FASCIA_HEIGHT / 2, 0],
-        [roofSpan, FASCIA_HEIGHT, house.depth + EAVES_DEPTH],
-      ),
+      placed([0, house.wallHeight - FASCIA_HEIGHT / 2, 0], fasciaSize),
       fordeColors.houseEaves,
     ),
     painted(
-      gableRoof(house),
+      houseRoof(house),
       new Matrix4().makeTranslation(0, house.wallHeight, 0),
       roofTones[house.roofTone],
     ),
-    painted(
-      unitBox,
-      placed(
-        [0, house.wallHeight + house.roofHeight - 0.12, 0],
-        [0.4, 0.26, house.depth + EAVES_DEPTH],
-      ),
-      fordeColors.houseRidge,
-    ),
-    ...houseWindows(house),
+    painted(unitBox, placed([0, ridge - 0.12, 0], ridgeSize), fordeColors.houseRidge),
+    ...houseOpenings(house),
+    ...dormers(house),
   ]
 
   if (house.stepped) {
@@ -290,16 +455,17 @@ function houseGeometry(house: GableHouse): BufferGeometry[] {
   }
 
   for (const chimney of house.chimneys) {
-    const base = house.wallHeight + house.roofHeight - 0.4
+    const base = ridge - 0.4
+    const stack: Vec3 = eaves ? [chimney.at, base, 0] : [0, base, chimney.at]
     parts.push(
       painted(
         unitBox,
-        placed([0, base + chimney.height / 2, chimney.at], [0.8, chimney.height, 0.8]),
+        placed([stack[0], base + chimney.height / 2, stack[2]], [0.8, chimney.height, 0.8]),
         fordeColors.chimney,
       ),
       painted(
         unitBox,
-        placed([0, base + chimney.height, chimney.at], [1.05, 0.2, 1.05]),
+        placed([stack[0], base + chimney.height, stack[2]], [1.05, 0.2, 1.05]),
         fordeColors.houseEaves,
       ),
     )
@@ -313,36 +479,234 @@ function houseGeometry(house: GableHouse): BufferGeometry[] {
   )
 }
 
-// Two dozen houses of a dozen parts each, none of which ever moves: one merged
-// geometry with the tones baked into its vertex colours keeps the whole harbour
-// front at a single draw call.
-const townGeometry = merged(quayHouses.flatMap(houseGeometry))
+// Four sides, turned a half facet when placed, so the pyramid's ridges sit over
+// the tower's corners rather than across its faces.
+const unitNeedle = new CylinderGeometry(0, 1, 1, 4)
+const unitOctagonCone = new CylinderGeometry(0, 1, 1, 8)
+const unitOctagonCap = new CylinderGeometry(0.44, 1, 1, 8)
+const unitOctagonDrum = new CylinderGeometry(1, 1, 1, 8)
+const unitDisc = new CylinderGeometry(1, 1, 1, 16)
+const unitBall = new IcosahedronGeometry(1, 1)
+const HALF_FACET = new Matrix4().makeRotationY(Math.PI / 4)
+
+/** A cone or drum stood on end at a point, `radius` wide and `height` tall. */
+function stood(at: Vec3, radius: number, height: number, turned = false): Matrix4 {
+  const matrix = new Matrix4().makeTranslation(...at)
+  if (turned) {
+    matrix.multiply(HALF_FACET)
+  }
+  return matrix.multiply(new Matrix4().makeScale(radius, height, radius))
+}
+
+/** A disc laid flat against a wall facing +z. */
+function facing(at: Vec3, radius: number, thickness: number): Matrix4 {
+  return new Matrix4()
+    .makeTranslation(...at)
+    .multiply(new Matrix4().makeRotationX(Math.PI / 2))
+    .multiply(new Matrix4().makeScale(radius, thickness, radius))
+}
+
+type TowerFace = (across: number, y: number, width: number, height: number) => Matrix4
+
+/** The front and the two flanks of a tower; the back is never seen. */
+function towerFaces(spire: Spire): TowerFace[] {
+  const half = spire.width / 2
+  return [
+    (across, y, width, height) => placed([across, y, half], [width, height, 0.12]),
+    (across, y, width, height) => placed([half, y, across], [0.12, height, width]),
+    (across, y, width, height) => placed([-half, y, across], [0.12, height, width]),
+  ]
+}
+
+/**
+ * Slit windows up the shaft and the tall louvred openings of the belfry: the
+ * two things that make a box with a cone on it read as a church tower.
+ */
+function towerOpenings(spire: Spire): BufferGeometry[] {
+  const parts: BufferGeometry[] = []
+  const belfryBase = spire.towerHeight - BELFRY_HEIGHT
+  const clockRadius = spire.width * 0.19
+  const clockY = belfryBase - clockRadius - 1.3
+  // The clock takes the storey under the belfry, so the slits stop below it.
+  const slitsEnd = spire.clock ? clockY - clockRadius - 0.6 : belfryBase - 0.6
+  const slitHeight = 2.2
+
+  for (const face of towerFaces(spire)) {
+    for (
+      let y = HOUSE_PLINTH + TOWER_STOREY * 0.9;
+      y + slitHeight / 2 < slitsEnd;
+      y += TOWER_STOREY
+    ) {
+      parts.push(painted(unitBox, face(0, y, 0.7, slitHeight), fordeColors.windowGlass))
+    }
+
+    for (const side of [-1, 1]) {
+      parts.push(
+        painted(
+          unitBox,
+          face(
+            side * spire.width * 0.2,
+            belfryBase + BELFRY_HEIGHT / 2,
+            spire.width * 0.17,
+            BELFRY_HEIGHT * 0.66,
+          ),
+          fordeColors.belfry,
+        ),
+      )
+    }
+  }
+
+  if (spire.clock) {
+    const front = spire.width / 2
+    parts.push(
+      painted(
+        unitDisc,
+        facing([0, clockY, front + 0.05], clockRadius + 0.2, 0.1),
+        fordeColors.houseEaves,
+      ),
+      painted(unitDisc, facing([0, clockY, front + 0.1], clockRadius, 0.14), fordeColors.clockFace),
+    )
+  }
+
+  return parts
+}
+
+/**
+ * The cap of the tower: a gothic needle, or a baroque lantern with an open
+ * drum between two roofs. Either ends in a ball and a spike, which is what a
+ * spire's tip is in every skyline drawing and what stops it looking cut off.
+ */
+function towerCap(spire: Spire): BufferGeometry[] {
+  const base = spire.towerHeight
+  const top = base + spire.spireHeight
+  const wallTone = spire.brick ? fordeColors.towerBrick : fordeColors.house
+  const parts: BufferGeometry[] = []
+
+  if (spire.lantern) {
+    const capHeight = spire.spireHeight * 0.36
+    const drumHeight = spire.spireHeight * 0.26
+    const drumRadius = spire.width * 0.3
+    const drumY = base + capHeight + drumHeight / 2
+    parts.push(
+      painted(
+        unitOctagonCap,
+        stood([0, base + capHeight / 2, 0], spire.width * 0.78, capHeight),
+        fordeColors.spire,
+      ),
+      painted(unitOctagonDrum, stood([0, drumY, 0], drumRadius, drumHeight), wallTone),
+      painted(
+        unitOctagonCone,
+        stood(
+          [0, top - (spire.spireHeight * 0.38) / 2, 0],
+          spire.width * 0.36,
+          spire.spireHeight * 0.38,
+        ),
+        fordeColors.spire,
+      ),
+    )
+    // The lantern is open on every side, so the bells can be heard.
+    const opening = [drumRadius * 0.8, drumHeight * 0.55] as const
+    for (const side of [-1, 1]) {
+      parts.push(
+        painted(
+          unitBox,
+          placed([side * drumRadius, drumY, 0], [0.12, opening[1], opening[0]]),
+          fordeColors.belfry,
+        ),
+        painted(
+          unitBox,
+          placed([0, drumY, side * drumRadius], [opening[0], opening[1], 0.12]),
+          fordeColors.belfry,
+        ),
+      )
+    }
+  } else {
+    // A needle inside a ring of pinnacles rises from within the parapet; one
+    // without them reaches out to the eaves like an ordinary roof.
+    const radius = spire.width * (spire.pinnacles ? 0.52 : 0.78)
+    parts.push(
+      painted(
+        unitNeedle,
+        stood([0, base + spire.spireHeight / 2, 0], radius, spire.spireHeight, true),
+        fordeColors.spire,
+      ),
+    )
+  }
+
+  if (spire.pinnacles) {
+    const inset = spire.width / 2 - 0.4
+    for (const across of [-inset, inset]) {
+      for (const along of [-inset, inset]) {
+        parts.push(
+          painted(unitBox, placed([across, base + 0.75, along], [0.7, 1.5, 0.7]), wallTone),
+          painted(
+            unitNeedle,
+            stood([across, base + 1.5 + 0.85, along], 0.5, 1.7, true),
+            fordeColors.spire,
+          ),
+        )
+      }
+    }
+  }
+
+  parts.push(
+    painted(unitBall, stood([0, top + 0.2, 0], 0.32, 0.32), fordeColors.finial),
+    painted(unitBox, placed([0, top + 1.1, 0], [0.1, 1.2, 0.1]), fordeColors.finial),
+  )
+
+  return parts
+}
+
+function spireGeometry(spire: Spire): BufferGeometry[] {
+  const wallTone = spire.brick ? fordeColors.towerBrick : fordeColors.house
+  // Plaster towers carry a dark cornice like the houses' eaves; on brick the
+  // string courses are the light stone bands, or they vanish into the wall.
+  const bandTone = spire.brick ? fordeColors.housePlinth : fordeColors.houseEaves
+  const belfryBase = spire.towerHeight - BELFRY_HEIGHT
+
+  const parts = [
+    painted(
+      unitBox,
+      placed([0, spire.towerHeight / 2, 0], [spire.width, spire.towerHeight, spire.width]),
+      wallTone,
+    ),
+    painted(
+      unitBox,
+      placed([0, HOUSE_PLINTH / 2, 0], [spire.width + 0.3, HOUSE_PLINTH, spire.width + 0.3]),
+      fordeColors.housePlinth,
+    ),
+    painted(
+      unitBox,
+      placed([0, belfryBase, 0], [spire.width + 0.3, 0.28, spire.width + 0.3]),
+      bandTone,
+    ),
+    painted(
+      unitBox,
+      placed([0, spire.towerHeight - 0.2, 0], [spire.width + 0.6, 0.4, spire.width + 0.6]),
+      bandTone,
+    ),
+    ...towerOpenings(spire),
+    ...towerCap(spire),
+  ]
+
+  return parts.map((part) =>
+    part.applyMatrix4(new Matrix4().makeTranslation(spire.x, farShore.top, spire.z)),
+  )
+}
+
+// Some eighty houses and four towers of a dozen parts each, none of which ever
+// moves: one merged geometry with the tones baked into its vertex colours keeps
+// the whole harbour front at a single draw call.
+const townGeometry = merged([
+  ...quayHouses.flatMap(houseGeometry),
+  ...spires.flatMap(spireGeometry),
+])
 
 function HarbourFront() {
   return (
-    <>
-      <mesh geometry={townGeometry}>
-        <meshLambertMaterial vertexColors flatShading />
-      </mesh>
-
-      {spires.map((spire) => (
-        <group key={spire.x} position={[spire.x, farShore.top, spire.z]}>
-          <mesh position={[0, spire.towerHeight / 2, 0]}>
-            <boxGeometry args={[spire.width, spire.towerHeight, spire.width]} />
-            <meshLambertMaterial color={fordeColors.house} />
-          </mesh>
-          {/* Four sides, turned a half facet so the pyramid's ridges sit over
-              the tower's corners rather than across its faces. */}
-          <mesh
-            position={[0, spire.towerHeight + spire.spireHeight / 2, 0]}
-            rotation={[0, Math.PI / 4, 0]}
-          >
-            <coneGeometry args={[spire.width * 0.78, spire.spireHeight, 4]} />
-            <meshLambertMaterial color={fordeColors.spire} />
-          </mesh>
-        </group>
-      ))}
-    </>
+    <mesh geometry={townGeometry}>
+      <meshLambertMaterial vertexColors flatShading />
+    </mesh>
   )
 }
 

@@ -1,6 +1,6 @@
 export type Act = 'lage' | 'boden' | 'software' | 'fahrt'
 export type Step = 'messen' | 'verstehen' | 'handeln'
-export type Layout = 'statement' | 'exhibit' | 'photo'
+export type Layout = 'statement' | 'exhibit' | 'photo' | 'demo'
 
 export type SceneId =
   | 'title'
@@ -12,14 +12,21 @@ export type SceneId =
   | 'history'
   | 'planning'
   | 'tour'
+  | 'inspection'
+  | 'team'
   | 'open-source'
+  | 'demo'
 
 export type Visual =
-  | { kind: 'lottie'; name: 'logo' | 'cable' | 'dashboard' }
+  | { kind: 'lottie'; name: 'cable' }
   | { kind: 'image'; asset: string }
   | { kind: 'video'; clip: string; poster: string }
   | { kind: 'tour' }
   | { kind: 'partners' }
+  | { kind: 'wordmark' }
+  | { kind: 'demo' }
+
+export type ChromeElement = 'logo' | 'qr' | 'tour'
 
 export interface Scene {
   id: SceneId
@@ -31,6 +38,12 @@ export interface Scene {
   opensStep?: boolean
   /** Which side the visual sits on in the exhibit layout. */
   side?: 'left' | 'right'
+  /**
+   * Persistent elements to hide for this scene. The title replaces the small
+   * corner logo with its own large one; the closing slide replaces the QR
+   * corner and tour path with its own centered call to action.
+   */
+  hideChrome?: ChromeElement[]
   visual: Visual
 }
 
@@ -39,30 +52,31 @@ export interface Scene {
 export const showcaseScenes: Scene[] = [
   {
     id: 'title',
-    act: 'lage',
+    act: 'software',
     layout: 'statement',
-    seconds: 8,
-    visual: { kind: 'lottie', name: 'logo' },
+    seconds: 12,
+    hideChrome: ['logo'],
+    visual: { kind: 'wordmark' },
   },
   {
     id: 'quote',
     act: 'lage',
-    layout: 'statement',
-    seconds: 10,
-    visual: { kind: 'lottie', name: 'dashboard' },
+    layout: 'photo',
+    seconds: 14,
+    visual: { kind: 'image', asset: 'bewaesserung-jungbaum-tbz.jpg' },
   },
   {
     id: 'water',
     act: 'lage',
-    layout: 'statement',
-    seconds: 9,
-    visual: { kind: 'lottie', name: 'dashboard' },
+    layout: 'photo',
+    seconds: 13,
+    visual: { kind: 'image', asset: 'baumscheibe-bagger-tbz.jpg' },
   },
   {
     id: 'sensor',
     act: 'boden',
     layout: 'photo',
-    seconds: 10,
+    seconds: 14,
     step: 'messen',
     opensStep: true,
     visual: { kind: 'image', asset: 'sensor-einbau-erdbohrer.jpg' },
@@ -71,7 +85,7 @@ export const showcaseScenes: Scene[] = [
     id: 'lorawan',
     act: 'boden',
     layout: 'exhibit',
-    seconds: 9,
+    seconds: 12,
     step: 'messen',
     side: 'right',
     visual: { kind: 'lottie', name: 'cable' },
@@ -80,7 +94,7 @@ export const showcaseScenes: Scene[] = [
     id: 'map',
     act: 'software',
     layout: 'exhibit',
-    seconds: 11,
+    seconds: 14,
     step: 'verstehen',
     opensStep: true,
     side: 'left',
@@ -90,7 +104,7 @@ export const showcaseScenes: Scene[] = [
     id: 'history',
     act: 'software',
     layout: 'exhibit',
-    seconds: 10,
+    seconds: 14,
     step: 'verstehen',
     side: 'right',
     visual: { kind: 'video', clip: 'showcase-verlauf.mp4', poster: 'v0.6.0-baum-detailseite.png' },
@@ -99,7 +113,7 @@ export const showcaseScenes: Scene[] = [
     id: 'planning',
     act: 'software',
     layout: 'exhibit',
-    seconds: 10,
+    seconds: 12,
     step: 'handeln',
     opensStep: true,
     side: 'left',
@@ -113,17 +127,39 @@ export const showcaseScenes: Scene[] = [
     id: 'tour',
     act: 'fahrt',
     layout: 'exhibit',
-    seconds: 12,
+    seconds: 16,
     step: 'handeln',
     side: 'right',
     visual: { kind: 'tour' },
   },
   {
+    id: 'inspection',
+    act: 'fahrt',
+    layout: 'photo',
+    seconds: 13,
+    visual: { kind: 'image', asset: 'einsatz-jungbaum-tablet.jpg' },
+  },
+  {
+    id: 'team',
+    act: 'fahrt',
+    layout: 'photo',
+    seconds: 13,
+    visual: { kind: 'image', asset: 'team-progeek.jpg' },
+  },
+  {
     id: 'open-source',
     act: 'fahrt',
     layout: 'statement',
-    seconds: 10,
+    seconds: 14,
     visual: { kind: 'partners' },
+  },
+  {
+    id: 'demo',
+    act: 'fahrt',
+    layout: 'demo',
+    seconds: 19,
+    hideChrome: ['qr', 'tour'],
+    visual: { kind: 'demo' },
   },
 ]
 

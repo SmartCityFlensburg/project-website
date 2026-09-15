@@ -23,7 +23,7 @@
     },
     "water": {
       "statement": "50,000 litres of water a year",
-      "body": "is what Flensburg puts on its urban trees, with no data to go on.",
+      "body": "is what Flensburg puts on its urban trees each year, with no data to go on and plenty of manual work on site.",
       "source": "Source: TBZ Flensburg"
     },
     "sensor": {
@@ -55,10 +55,23 @@
       "body": "Water capacity, refill points, vehicle size and access restrictions all feed into the route. Export as GPX for standard navigation devices.",
       "source": "Route optimisation with Streamlet"
     },
+    "inspection": {
+      "statement": "The state of every tree, right on site.",
+      "body": "Staff see on the tablet which tree needs water, and log the watering right away."
+    },
+    "team": {
+      "statement": "Born at Flensburg University of Applied Sciences.",
+      "body": "Developed to production readiness by PROGEEK GmbH, in pilot operation with TBZ Flensburg."
+    },
     "open-source": {
       "statement": "100% open source under AGPL-3.0",
       "body": "Funded by the state of Schleswig-Holstein through “Offene Innovation: Open Source made in SH”. In pilot operation with TBZ Flensburg.",
       "source": "Flensburg University of Applied Sciences · PROGEEK · Smarte Grenzregion · City of Flensburg"
+    },
+    "demo": {
+      "statement": "Try it yourself.",
+      "body": "Map, sensor history and planning are waiting on the demo instance.",
+      "siteUrl": "green-ecolution.de"
     }
   }
 }

@@ -1,15 +1,19 @@
 import type { ReactNode } from 'react'
 import { useT } from '../../../i18n/useT'
 import type { Scene } from '../../../data/showcase'
+import { optionalText } from '../../../lib/showcase/text'
 
 export default function PhotoScene({ scene, children }: { scene: Scene; children?: ReactNode }) {
   const t = useT()
+  const source = optionalText(t(`scenes.${scene.id}.source`))
 
   return (
     <div className="relative h-full w-full overflow-hidden">
       {children}
+      {/* Sized for the tallest stack among the four photo scenes: eyebrow,
+          statement, body and a source line (water carries all four). */}
       <div
-        className="absolute inset-x-0 bottom-0 h-[38%]"
+        className="absolute inset-x-0 bottom-0 h-[46%]"
         style={{
           background:
             'linear-gradient(to top, rgba(45,74,39,0.98) 0%, rgba(45,74,39,0.86) 45%, rgba(45,74,39,0) 100%)',
@@ -33,6 +37,14 @@ export default function PhotoScene({ scene, children }: { scene: Scene; children
         >
           {t(`scenes.${scene.id}.body`)}
         </p>
+        {source && (
+          <p
+            className="showcase-rise mt-5 font-nunito-sans text-base text-[#E8EBCC70]"
+            style={{ animationDelay: '240ms' }}
+          >
+            {source}
+          </p>
+        )}
       </div>
     </div>
   )

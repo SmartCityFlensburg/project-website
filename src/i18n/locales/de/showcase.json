@@ -23,7 +23,7 @@
     },
     "water": {
       "statement": "50.000 Liter Wasser pro Jahr",
-      "body": "bringt Flensburg für seine Stadtbäume aus, ganz ohne Datengrundlage.",
+      "body": "bringt Flensburg jährlich für seine Stadtbäume auf, ganz ohne Datengrundlage und mit viel Handarbeit vor Ort.",
       "source": "Quelle: TBZ Flensburg"
     },
     "sensor": {
@@ -55,10 +55,23 @@
       "body": "Wasserkapazität, Nachfüllpunkte, Fahrzeuggröße und Zufahrtsrestriktionen fließen in die Route ein. Export als GPX für handelsübliche Navigationsgeräte.",
       "source": "Routenoptimierung mit Streamlet"
     },
+    "inspection": {
+      "statement": "Der Zustand jedes Baums, direkt vor Ort.",
+      "body": "Mitarbeitende sehen am Tablet, welcher Baum Wasser braucht, und dokumentieren die Bewässerung sofort."
+    },
+    "team": {
+      "statement": "Entstanden an der Hochschule Flensburg.",
+      "body": "Weiterentwickelt zur Produktionsreife durch die PROGEEK GmbH, im Pilotbetrieb mit dem TBZ Flensburg."
+    },
     "open-source": {
       "statement": "100 % Open Source unter AGPL-3.0",
       "body": "Gefördert vom Land Schleswig-Holstein aus „Offene Innovation: Open Source made in SH“. Im Pilotbetrieb mit dem TBZ Flensburg.",
       "source": "Hochschule Flensburg · PROGEEK · Smarte Grenzregion · Stadt Flensburg"
+    },
+    "demo": {
+      "statement": "Probier es selbst aus.",
+      "body": "Karte, Sensorverläufe und Einsatzplanung warten auf der Demo-Instanz.",
+      "siteUrl": "green-ecolution.de"
     }
   }
 }

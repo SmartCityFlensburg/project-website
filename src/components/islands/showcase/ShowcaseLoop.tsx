@@ -49,6 +49,7 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
   // across the hand-off lets the video, Ken Burns pan and Lottie keep playing
   // from where they were instead of restarting.
   const layers = [leaving, current].filter((entry): entry is TimelineEntry => entry !== null)
+  const hiddenChrome = new Set(current.scene.hideChrome ?? [])
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -76,44 +77,50 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
           background behind it is still 1200ms into its own crossfade — worst
           case a white logo lands on a still-white background. Two stacked
           images crossfading on the same clock keep the logo in step with it. */}
-      <div className="absolute top-10 left-24 h-10">
-        <img
-          src={logoColor.src}
-          alt=""
-          className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
-          style={{ opacity: onDarkPlate ? 0 : 1 }}
-        />
-        <img
-          src={logoWhite.src}
-          alt=""
-          className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
-          style={{ opacity: onDarkPlate ? 1 : 0 }}
-        />
-      </div>
-
-      <div className="absolute right-24 bottom-24 flex items-center gap-4">
-        <div className="text-right">
-          <p
-            className="showcase-act-fade font-lato text-sm tracking-[0.16em] uppercase transition-colors duration-[1200ms]"
-            style={{ color: onDarkPlate ? '#E8EBCC99' : '#8B7355' }}
-          >
-            {t('demo.label')}
-          </p>
-          <p
-            className="showcase-act-fade font-nunito-sans text-base transition-colors duration-[1200ms]"
-            style={{ color: onDarkPlate ? '#E8EBCC' : '#2D4A27' }}
-          >
-            {t('demo.url')}
-          </p>
+      {!hiddenChrome.has('logo') && (
+        <div className="absolute top-10 left-24 h-10">
+          <img
+            src={logoColor.src}
+            alt=""
+            className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
+            style={{ opacity: onDarkPlate ? 0 : 1 }}
+          />
+          <img
+            src={logoWhite.src}
+            alt=""
+            className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
+            style={{ opacity: onDarkPlate ? 1 : 0 }}
+          />
         </div>
-        <img
-          src="/assets/showcase/qr-demo.svg"
-          alt=""
-          className="h-24 w-24 rounded bg-white p-1.5 ring-1 ring-black/10"
-        />
-      </div>
+      )}
 
-      <TourPath progress={loopProgress(showcaseScenes, elapsedMs)} dark={onDarkPlate} />
+      {!hiddenChrome.has('qr') && (
+        <div className="absolute right-24 bottom-24 flex items-center gap-4">
+          <div className="text-right">
+            <p
+              className="showcase-act-fade font-lato text-sm tracking-[0.16em] uppercase transition-colors duration-[1200ms]"
+              style={{ color: onDarkPlate ? '#E8EBCC99' : '#8B7355' }}
+            >
+              {t('demo.label')}
+            </p>
+            <p
+              className="showcase-act-fade font-nunito-sans text-base transition-colors duration-[1200ms]"
+              style={{ color: onDarkPlate ? '#E8EBCC' : '#2D4A27' }}
+            >
+              {t('demo.url')}
+            </p>
+          </div>
+          <img
+            src="/assets/showcase/qr-demo.svg"
+            alt=""
+            className="h-24 w-24 rounded bg-white p-1.5 ring-1 ring-black/10"
+          />
+        </div>
+      )}
+
+      {!hiddenChrome.has('tour') && (
+        <TourPath progress={loopProgress(showcaseScenes, elapsedMs)} dark={onDarkPlate} />
+      )}
     </div>
   )
 }

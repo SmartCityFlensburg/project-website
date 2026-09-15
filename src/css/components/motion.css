@@ -67,6 +67,22 @@
   animation: showcase-pan linear both !important;
 }
 
+/* A crop-free variant for the video fallback: the image is a full-app
+   screenshot, not a photo, so it must stay entirely visible rather than
+   sweep past its edges. */
+@keyframes showcase-pan-contain {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.05) translate(-1%, -0.5%);
+  }
+}
+
+.showcase-pan-contain {
+  animation: showcase-pan-contain linear both !important;
+}
+
 /* Same reasoning as above, for the act crossfade and the tour's fade-in:
    an instant cut there reads as a glitch, not as respecting a setting. */
 .showcase-act-fade {

@@ -1,15 +1,12 @@
 import { useState } from 'react'
 import LottiePlayer from '../LottiePlayer'
 import cableAnimation from '../../../json/cableAnimation.json'
-import dashboardAnimation from '../../../json/dashboardAnimation.json'
-import logoAnimation from '../../../json/logoAnimation.json'
+import wordmarkColor from '../../../assets/press/green-ecolution-logo-color.svg'
 import { showcaseClipBaseUrl } from '../../../lib/runtimeEnv'
 import type { Visual } from '../../../data/showcase'
 
 const LOTTIE = {
-  logo: logoAnimation,
   cable: cableAnimation,
-  dashboard: dashboardAnimation,
 }
 
 const photos = import.meta.glob<{ default: { src: string } }>(
@@ -31,12 +28,27 @@ function assetUrl(name: string): string {
   return entry.default.src
 }
 
-function PannedImage({ name, seconds }: { name: string; seconds: number }) {
+function PannedImage({
+  name,
+  seconds,
+  contain = false,
+}: {
+  name: string
+  seconds: number
+  // A full-app screenshot standing in for a screencast must stay fully
+  // visible rather than crop like a photo, so it gets the smaller,
+  // crop-free pan instead of the regular Ken Burns sweep.
+  contain?: boolean
+}) {
   return (
     <img
       src={assetUrl(name)}
       alt=""
-      className="showcase-pan h-full w-full object-cover"
+      className={
+        contain
+          ? 'showcase-pan-contain h-full w-full object-contain'
+          : 'showcase-pan h-full w-full object-cover'
+      }
       style={{ animationDuration: `${seconds}s` }}
     />
   )
@@ -95,7 +107,7 @@ function ShowcaseVideo({
   // Until a clip exists in the bucket the slot shows its screenshot, so the
   // loop is complete from day one and gains the recording without a change.
   if (clipFailed) {
-    return <PannedImage name={visual.poster} seconds={seconds} />
+    return <PannedImage name={visual.poster} seconds={seconds} contain />
   }
 
   return (
@@ -107,7 +119,9 @@ function ShowcaseVideo({
       loop
       playsInline
       preload="auto"
-      className="h-full w-full object-cover"
+      // contain, not cover: a screencast is a UI recording, not a photo — a
+      // crop that cuts off part of the app is a defect, not a stylistic choice.
+      className="h-full w-full object-contain"
       onError={() => {
         failedClips.add(visual.clip)
         setClipFailed(true)
@@ -141,5 +155,15 @@ export default function ShowcaseVisual({ visual, seconds }: { visual: Visual; se
 
     case 'partners':
       return <PartnerLogos />
+
+    case 'wordmark':
+      return (
+        <img src={wordmarkColor.src} alt="" className="showcase-rise mx-auto mb-10 h-48 w-auto" />
+      )
+
+    case 'demo':
+      // DemoScene draws its own QR code and addresses; there is no
+      // per-scene media to route through this slot.
+      return null
   }
 }

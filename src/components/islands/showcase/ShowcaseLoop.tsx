@@ -1,13 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TranslationProvider } from '../../../i18n/TranslationProvider'
 import { showcaseScenes, type Act } from '../../../data/showcase'
-import {
-  buildTimeline,
-  leavingOf,
-  loopProgress,
-  reachedSteps,
-  sceneAt,
-} from '../../../lib/showcase/timeline'
+import { buildTimeline, leavingOf, loopProgress, sceneAt } from '../../../lib/showcase/timeline'
 import { useT } from '../../../i18n/useT'
 import logoColor from '../../../assets/press/green-ecolution-logo-color.svg'
 import logoWhite from '../../../assets/press/green-ecolution-logo-white.svg'
@@ -40,6 +34,10 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
   // than a timer: a second time source beside the loop's own would drift.
   const leaving = leavingOf(timeline, current, elapsedMs, FADE_MS)
   const dark = current.scene.act === 'lage' || current.scene.act === 'fahrt'
+  // The photo layout lays its own deep-green scrim over the lower third and
+  // fills the frame with a dark photograph, so the persistent elements follow
+  // the scene, not the act it belongs to.
+  const onDarkPlate = dark || current.scene.layout === 'photo'
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -64,7 +62,7 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
       </div>
 
       <img
-        src={dark ? logoWhite.src : logoColor.src}
+        src={onDarkPlate ? logoWhite.src : logoColor.src}
         alt=""
         className="absolute top-10 left-24 h-10"
       />
@@ -73,26 +71,25 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
         <div className="text-right">
           <p
             className="font-lato text-sm tracking-[0.16em] uppercase"
-            style={{ color: dark ? '#E8EBCC99' : '#8B7355' }}
+            style={{ color: onDarkPlate ? '#E8EBCC99' : '#8B7355' }}
           >
             {t('demo.label')}
           </p>
-          <p className="font-nunito-sans text-base" style={{ color: dark ? '#E8EBCC' : '#2D4A27' }}>
+          <p
+            className="font-nunito-sans text-base"
+            style={{ color: onDarkPlate ? '#E8EBCC' : '#2D4A27' }}
+          >
             {t('demo.url')}
           </p>
         </div>
         <img
           src="/assets/showcase/qr-demo.svg"
           alt=""
-          className="h-24 w-24 rounded bg-white p-1.5"
+          className="h-24 w-24 rounded bg-white p-1.5 ring-1 ring-black/10"
         />
       </div>
 
-      <TourPath
-        progress={loopProgress(showcaseScenes, elapsedMs)}
-        reached={reachedSteps(showcaseScenes, elapsedMs)}
-        dark={dark}
-      />
+      <TourPath progress={loopProgress(showcaseScenes, elapsedMs)} dark={onDarkPlate} />
     </div>
   )
 }

@@ -3,7 +3,6 @@ import { STEP_ORDER, type Step } from '../../../data/showcase'
 
 interface Props {
   progress: number
-  reached: Step[]
   dark: boolean
 }
 
@@ -15,7 +14,7 @@ const STOP_AT: Record<Step, number> = {
   handeln: 0.76,
 }
 
-export default function TourPath({ progress, reached, dark }: Props) {
+export default function TourPath({ progress, dark }: Props) {
   const t = useT()
   const line = dark ? '#E8EBCC40' : '#8B735540'
   const active = dark ? '#E8EBCC' : '#4C7741'
@@ -29,7 +28,9 @@ export default function TourPath({ progress, reached, dark }: Props) {
           style={{ width: `${progress * 100}%`, backgroundColor: active }}
         />
         {STEP_ORDER.map((step) => {
-          const done = reached.includes(step)
+          // Same source as the point's own position, so a station can never light
+          // up before the point that is supposed to be reaching it.
+          const done = progress >= STOP_AT[step]
           return (
             <div
               key={step}

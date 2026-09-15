@@ -1,15 +1,36 @@
 ---
 import ShowcaseLayout from '../../layouts/ShowcaseLayout.astro'
-import { getTranslations } from '../../i18n/t'
+import ShowcaseLoop from '../../components/islands/showcase/ShowcaseLoop'
+import { getTranslations, type TranslationKey } from '../../i18n/t'
 import { currentLanguage } from '../../i18n/languages'
 import { languagePaths } from '../../lib/languagePaths'
+import { pickStrings } from '../../i18n/pick'
+import { showcaseScenes } from '../../data/showcase'
 
 export const getStaticPaths = languagePaths
 
 const language = currentLanguage(Astro.params.lang)
 const t = getTranslations(language, 'showcase')
+
+const SCENE_FIELDS = ['statement', 'body', 'source', 'eyebrow'] as const
+
+// Every key a scene might read, whether or not that scene defines it: a missing
+// key renders as a visible marker rather than throwing, and the catalog decides
+// which fields actually exist.
+const keys = [
+  ...showcaseScenes.flatMap((scene) => SCENE_FIELDS.map((field) => `scenes.${scene.id}.${field}`)),
+  'steps.messen',
+  'steps.verstehen',
+  'steps.handeln',
+  'demo.label',
+  'demo.url',
+] as TranslationKey<'showcase'>[]
+
+const strings = pickStrings(language, 'showcase', keys)
 ---
 
 <ShowcaseLayout title={t('meta.title')} description={t('meta.description')} language={language}>
-  <main class="h-full w-full"></main>
+  <main class="h-full w-full">
+    <ShowcaseLoop client:only="react" language={language} strings={strings} />
+  </main>
 </ShowcaseLayout>

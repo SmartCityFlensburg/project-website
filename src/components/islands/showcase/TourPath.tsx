@@ -1,18 +1,15 @@
 import { useT } from '../../../i18n/useT'
-import { STEP_ORDER, type Step } from '../../../data/showcase'
+import { showcaseScenes, STEP_ORDER } from '../../../data/showcase'
+import { stepStops } from '../../../lib/showcase/timeline'
 
 interface Props {
   progress: number
   dark: boolean
 }
 
-// The three stops sit where their scenes run, not at even thirds: the point has
-// to arrive at a stop while that step is on screen.
-const STOP_AT: Record<Step, number> = {
-  messen: 0.3,
-  verstehen: 0.52,
-  handeln: 0.76,
-}
+// Where each step's scene actually runs on the timeline, not a hand-picked
+// guess: a changed scene duration moves the stop with it.
+const STOP_AT = stepStops(showcaseScenes)
 
 export default function TourPath({ progress, dark }: Props) {
   const t = useT()
@@ -22,9 +19,12 @@ export default function TourPath({ progress, dark }: Props) {
 
   return (
     <div className="pointer-events-none absolute inset-x-24 bottom-10">
-      <div className="relative h-px w-full" style={{ backgroundColor: line }}>
+      <div
+        className="showcase-act-fade relative h-px w-full transition-colors duration-[1200ms]"
+        style={{ backgroundColor: line }}
+      >
         <div
-          className="absolute inset-y-0 left-0"
+          className="showcase-act-fade absolute inset-y-0 left-0 transition-colors duration-[1200ms]"
           style={{ width: `${progress * 100}%`, backgroundColor: active }}
         />
         {STEP_ORDER.map((step) => {
@@ -51,7 +51,7 @@ export default function TourPath({ progress, dark }: Props) {
           )
         })}
         <div
-          className="absolute h-3 w-3 -translate-x-1/2 rounded-full"
+          className="showcase-act-fade absolute h-3 w-3 -translate-x-1/2 rounded-full transition-colors duration-[1200ms]"
           style={{ left: `${progress * 100}%`, top: '-6px', backgroundColor: active }}
         />
       </div>

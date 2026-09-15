@@ -1,4 +1,4 @@
-import { STEP_ORDER, type Scene, type Step } from '../../data/showcase'
+import type { Scene, Step } from '../../data/showcase'
 
 export interface TimelineEntry {
   scene: Scene
@@ -51,7 +51,7 @@ export function msIntoScene(
   elapsedMs: number,
 ): number {
   const totalMs = timeline[timeline.length - 1].endMs
-  return (((elapsedMs % totalMs) + totalMs) % totalMs) - entry.startMs
+  return intoLoop(totalMs, elapsedMs) - entry.startMs
 }
 
 export function leavingOf(
@@ -70,16 +70,18 @@ export function leavingOf(
   return since < fadeMs ? previousOf(timeline, current) : null
 }
 
-export function reachedSteps(scenes: Scene[], elapsedMs: number): Step[] {
+// The tour path marks each step where its content actually runs, not at even
+// thirds: the point has to arrive at a stop while that step is on screen.
+export function stepStops(scenes: Scene[]): Record<Step, number> {
   const timeline = buildTimeline(scenes)
-  const position = intoLoop(totalDurationMs(scenes), elapsedMs)
-  const seen = new Set<Step>()
+  const totalMs = totalDurationMs(scenes)
+  const stops = {} as Record<Step, number>
 
   for (const entry of timeline) {
-    if (entry.scene.step && position >= entry.startMs) {
-      seen.add(entry.scene.step)
+    if (entry.scene.step && !(entry.scene.step in stops)) {
+      stops[entry.scene.step] = (entry.startMs + entry.endMs) / 2 / totalMs
     }
   }
 
-  return STEP_ORDER.filter((step) => seen.has(step))
+  return stops
 }

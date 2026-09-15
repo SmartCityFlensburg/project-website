@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { showcaseScenes } from '../../data/showcase'
+import { showcaseScenes, STEP_ORDER } from '../../data/showcase'
 import {
   buildTimeline,
   leavingOf,
   loopProgress,
   msIntoScene,
   previousOf,
-  reachedSteps,
   sceneAt,
+  stepStops,
   totalDurationMs,
 } from './timeline'
 
@@ -60,21 +60,34 @@ describe('loopProgress', () => {
   })
 })
 
-describe('reachedSteps', () => {
-  it('hebt im Vorlauf noch keine Station hervor', () => {
-    expect(reachedSteps(showcaseScenes, 0)).toEqual([])
+describe('stepStops', () => {
+  it('setzt jede Station auf die Mitte der Szene, die den Schritt eröffnet', () => {
+    const stops = stepStops(showcaseScenes)
+
+    // sensor (messen) läuft 27_000–37_000, map (verstehen) 46_000–57_000,
+    // planning (handeln) 67_000–77_000 — jeweils bezogen auf 99_000ms Gesamtlauf.
+    expect(stops.messen).toBeCloseTo(32_000 / 99_000, 5)
+    expect(stops.verstehen).toBeCloseTo(51_500 / 99_000, 5)
+    expect(stops.handeln).toBeCloseTo(72_000 / 99_000, 5)
   })
 
-  it('hebt ab der Sensorszene Messen hervor', () => {
-    expect(reachedSteps(showcaseScenes, 27_500)).toEqual(['messen'])
+  it('liefert für jeden Schritt einen Wert zwischen null und eins', () => {
+    const stops = stepStops(showcaseScenes)
+
+    for (const step of STEP_ORDER) {
+      expect(stops[step]).toBeGreaterThan(0)
+      expect(stops[step]).toBeLessThan(1)
+    }
   })
 
-  it('hebt in der Kartenszene Messen und Verstehen hervor', () => {
-    expect(reachedSteps(showcaseScenes, 47_000)).toEqual(['messen', 'verstehen'])
-  })
+  it('folgt einer geänderten Sekundenangabe, ohne von Hand nachgepflegt zu werden', () => {
+    const stretched = showcaseScenes.map((scene) =>
+      scene.id === 'sensor' ? { ...scene, seconds: scene.seconds + 20 } : scene,
+    )
 
-  it('hat am Ende alle drei Stationen erreicht', () => {
-    expect(reachedSteps(showcaseScenes, 95_000)).toEqual(['messen', 'verstehen', 'handeln'])
+    const stops = stepStops(stretched)
+
+    expect(stops.messen).toBeCloseTo((27_000 + ((10 + 20) / 2) * 1000) / (99_000 + 20_000), 5)
   })
 })
 

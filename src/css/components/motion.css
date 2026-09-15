@@ -36,7 +36,7 @@
 }
 
 .showcase-rise {
-  animation: showcase-rise 620ms var(--ease-spring-settle) both;
+  animation: showcase-rise 620ms var(--ease-spring-settle) both !important;
 }
 
 @keyframes showcase-sink {
@@ -51,7 +51,7 @@
 }
 
 .showcase-sink {
-  animation: showcase-sink 600ms var(--ease-spring-settle) both;
+  animation: showcase-sink 600ms var(--ease-spring-settle) both !important;
 }
 
 @keyframes showcase-pan {
@@ -64,5 +64,15 @@
 }
 
 .showcase-pan {
-  animation: showcase-pan linear both;
+  animation: showcase-pan linear both !important;
+}
+
+/* Same reasoning as above, for the act crossfade and the tour's fade-in:
+   an instant cut there reads as a glitch, not as respecting a setting. */
+.showcase-act-fade {
+  transition-duration: 1200ms !important;
+}
+
+.showcase-tour-fade {
+  transition-duration: 500ms !important;
 }

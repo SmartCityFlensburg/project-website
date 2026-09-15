@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { TranslationProvider } from '../../../i18n/TranslationProvider'
-import { showcaseScenes, type Act } from '../../../data/showcase'
-import { buildTimeline, leavingOf, loopProgress, sceneAt } from '../../../lib/showcase/timeline'
+import { isDarkAct, showcaseScenes, type Act } from '../../../data/showcase'
+import {
+  buildTimeline,
+  leavingOf,
+  loopProgress,
+  sceneAt,
+  type TimelineEntry,
+} from '../../../lib/showcase/timeline'
 import { useT } from '../../../i18n/useT'
 import logoColor from '../../../assets/press/green-ecolution-logo-color.svg'
 import logoWhite from '../../../assets/press/green-ecolution-logo-white.svg'
@@ -33,50 +39,69 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
   // change reads as a dissolve instead of a cut. Derived from the clock rather
   // than a timer: a second time source beside the loop's own would drift.
   const leaving = leavingOf(timeline, current, elapsedMs, FADE_MS)
-  const dark = current.scene.act === 'lage' || current.scene.act === 'fahrt'
+  const dark = isDarkAct(current.scene.act)
   // The photo layout lays its own deep-green scrim over the lower third and
   // fills the frame with a dark photograph, so the persistent elements follow
   // the scene, not the act it belongs to.
   const onDarkPlate = dark || current.scene.layout === 'photo'
+  // Keyed by scene id and filtered rather than the previous `key={id + '-out'}`
+  // vs `key={id}` pair: those never matched, so React tore the leaving layer
+  // down and remounted it fresh on every crossfade. Keeping the id stable
+  // across the hand-off lets the video, Ken Burns pan and Lottie keep playing
+  // from where they were instead of restarting.
+  const layers = [leaving, current].filter((entry): entry is TimelineEntry => entry !== null)
 
   return (
     <div className="relative h-full w-full overflow-hidden">
       {/* The act colour lives on its own layer and crosses over twice as slowly
           as the content, so a change of act reads as light, not as a cut. */}
       <div
-        className="absolute inset-0 transition-colors duration-[1200ms]"
+        className="showcase-act-fade absolute inset-0 transition-colors duration-[1200ms]"
         style={{ backgroundColor: ACT_BACKGROUND[current.scene.act] }}
       />
       <div className="absolute inset-y-0 right-0 w-[65.5%]">
         <ShowcaseTour active={current.scene.visual.kind === 'tour'} />
       </div>
       <div className="absolute inset-0">
-        {leaving && (
-          <div key={`${leaving.scene.id}-out`} className="showcase-sink absolute inset-0">
-            <ShowcaseScene scene={leaving.scene} />
+        {layers.map((entry) => (
+          <div
+            key={entry.scene.id}
+            className={entry === leaving ? 'showcase-sink absolute inset-0' : 'absolute inset-0'}
+          >
+            <ShowcaseScene scene={entry.scene} />
           </div>
-        )}
-        <div key={current.scene.id} className="absolute inset-0">
-          <ShowcaseScene scene={current.scene} />
-        </div>
+        ))}
       </div>
 
-      <img
-        src={onDarkPlate ? logoWhite.src : logoColor.src}
-        alt=""
-        className="absolute top-10 left-24 h-10"
-      />
+      {/* A plain src swap cuts the moment the plate changes, while the
+          background behind it is still 1200ms into its own crossfade — worst
+          case a white logo lands on a still-white background. Two stacked
+          images crossfading on the same clock keep the logo in step with it. */}
+      <div className="absolute top-10 left-24 h-10">
+        <img
+          src={logoColor.src}
+          alt=""
+          className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
+          style={{ opacity: onDarkPlate ? 0 : 1 }}
+        />
+        <img
+          src={logoWhite.src}
+          alt=""
+          className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
+          style={{ opacity: onDarkPlate ? 1 : 0 }}
+        />
+      </div>
 
       <div className="absolute right-24 bottom-24 flex items-center gap-4">
         <div className="text-right">
           <p
-            className="font-lato text-sm tracking-[0.16em] uppercase"
+            className="showcase-act-fade font-lato text-sm tracking-[0.16em] uppercase transition-colors duration-[1200ms]"
             style={{ color: onDarkPlate ? '#E8EBCC99' : '#8B7355' }}
           >
             {t('demo.label')}
           </p>
           <p
-            className="font-nunito-sans text-base"
+            className="showcase-act-fade font-nunito-sans text-base transition-colors duration-[1200ms]"
             style={{ color: onDarkPlate ? '#E8EBCC' : '#2D4A27' }}
           >
             {t('demo.url')}

@@ -54,6 +54,22 @@ export function msIntoScene(
   return (((elapsedMs % totalMs) + totalMs) % totalMs) - entry.startMs
 }
 
+export function leavingOf(
+  timeline: TimelineEntry[],
+  current: TimelineEntry,
+  elapsedMs: number,
+  fadeMs: number,
+): TimelineEntry | null {
+  const since = msIntoScene(timeline, current, elapsedMs)
+  // elapsedMs - since is when the running scene began, counted from mount. At
+  // zero the loop itself has only just started, so nothing has left yet: the
+  // cyclic predecessor would be the last scene, which never ran.
+  if (elapsedMs - since <= 0) {
+    return null
+  }
+  return since < fadeMs ? previousOf(timeline, current) : null
+}
+
 export function reachedSteps(scenes: Scene[], elapsedMs: number): Step[] {
   const timeline = buildTimeline(scenes)
   const position = intoLoop(totalDurationMs(scenes), elapsedMs)

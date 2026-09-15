@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { showcaseScenes } from '../../data/showcase'
 import {
   buildTimeline,
+  leavingOf,
   loopProgress,
   msIntoScene,
   previousOf,
@@ -94,5 +95,27 @@ describe('msIntoScene', () => {
 
   it('zählt auch nach vielen Durchläufen ab dem Szenenbeginn', () => {
     expect(msIntoScene(timeline, timeline[1], 300 * 99_000 + 8_400)).toBe(400)
+  })
+})
+
+describe('leavingOf', () => {
+  it('hat beim Kaltstart nichts Ausgehendes', () => {
+    const current = sceneAt(timeline, 0)
+    expect(leavingOf(timeline, current, 0, 600)).toBeNull()
+  })
+
+  it('hat kurz nach dem Wechsel in die zweite Szene die Titelszene ausgehend', () => {
+    const current = sceneAt(timeline, 8_100)
+    expect(leavingOf(timeline, current, 8_100, 600)?.scene.id).toBe('title')
+  })
+
+  it('hat am Schleifenübergang die Open-Source-Szene ausgehend, anders als beim Kaltstart', () => {
+    const current = sceneAt(timeline, 99_100)
+    expect(leavingOf(timeline, current, 99_100, 600)?.scene.id).toBe('open-source')
+  })
+
+  it('hat mitten in einer Szene, wenn since größer als fadeMs ist, nichts Ausgehendes', () => {
+    const current = sceneAt(timeline, 10_000)
+    expect(leavingOf(timeline, current, 10_000, 600)).toBeNull()
   })
 })

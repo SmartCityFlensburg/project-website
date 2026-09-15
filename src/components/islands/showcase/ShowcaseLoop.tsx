@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TranslationProvider } from '../../../i18n/TranslationProvider'
 import { showcaseScenes, type Act } from '../../../data/showcase'
-import { buildTimeline, msIntoScene, previousOf, sceneAt } from '../../../lib/showcase/timeline'
+import { buildTimeline, leavingOf, sceneAt } from '../../../lib/showcase/timeline'
 import ShowcaseScene from './ShowcaseScene'
 
 interface Props {
@@ -37,11 +37,10 @@ export default function ShowcaseLoop({ strings }: Props) {
   }, [])
 
   const current = sceneAt(timeline, elapsedMs)
-  const since = msIntoScene(timeline, current, elapsedMs)
   // The scene that just left keeps rendering until its fade is done, so the
   // change reads as a dissolve instead of a cut. Derived from the clock rather
   // than a timer: a second time source beside the loop's own would drift.
-  const leaving = since < FADE_MS ? previousOf(timeline, current) : null
+  const leaving = leavingOf(timeline, current, elapsedMs, FADE_MS)
 
   return (
     <TranslationProvider strings={strings}>

@@ -16,9 +16,11 @@ export default function PhotoScene({ scene, children }: { scene: Scene; children
         }}
       />
       <div className="absolute inset-x-0 bottom-0 px-24 pb-20">
-        <p className="showcase-rise font-lato text-sm font-bold tracking-[0.2em] text-[#E8EBCC99] uppercase">
-          {t(`scenes.${scene.id}.eyebrow`)}
-        </p>
+        {scene.opensStep && (
+          <p className="showcase-rise font-lato text-sm font-bold tracking-[0.2em] text-[#E8EBCC99] uppercase">
+            {t(`scenes.${scene.id}.eyebrow`)}
+          </p>
+        )}
         <p
           className="showcase-rise mt-4 font-lato text-6xl leading-[1.08] font-light tracking-[-0.022em] text-[#E8EBCC]"
           style={{ animationDelay: '80ms' }}

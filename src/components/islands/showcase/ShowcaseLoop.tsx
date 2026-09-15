@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { TranslationProvider } from '../../../i18n/TranslationProvider'
 import { showcaseScenes, type Act } from '../../../data/showcase'
 import { buildTimeline, leavingOf, sceneAt } from '../../../lib/showcase/timeline'
+import ShowcaseBoundary from './ShowcaseBoundary'
 import ShowcaseScene from './ShowcaseScene'
 import ShowcaseTour from './ShowcaseTour'
 
@@ -44,28 +45,30 @@ export default function ShowcaseLoop({ strings }: Props) {
   const leaving = leavingOf(timeline, current, elapsedMs, FADE_MS)
 
   return (
-    <TranslationProvider strings={strings}>
-      <div className="relative h-full w-full overflow-hidden">
-        {/* The act colour lives on its own layer and crosses over twice as slowly
-            as the content, so a change of act reads as light, not as a cut. */}
-        <div
-          className="absolute inset-0 transition-colors duration-[1200ms]"
-          style={{ backgroundColor: ACT_BACKGROUND[current.scene.act] }}
-        />
-        <div className="absolute inset-y-0 right-0 w-[65.5%]">
-          <ShowcaseTour active={current.scene.visual.kind === 'tour'} />
-        </div>
-        <div className="absolute inset-0">
-          {leaving && (
-            <div key={`${leaving.scene.id}-out`} className="showcase-sink absolute inset-0">
-              <ShowcaseScene scene={leaving.scene} />
+    <ShowcaseBoundary>
+      <TranslationProvider strings={strings}>
+        <div className="relative h-full w-full overflow-hidden">
+          {/* The act colour lives on its own layer and crosses over twice as slowly
+              as the content, so a change of act reads as light, not as a cut. */}
+          <div
+            className="absolute inset-0 transition-colors duration-[1200ms]"
+            style={{ backgroundColor: ACT_BACKGROUND[current.scene.act] }}
+          />
+          <div className="absolute inset-y-0 right-0 w-[65.5%]">
+            <ShowcaseTour active={current.scene.visual.kind === 'tour'} />
+          </div>
+          <div className="absolute inset-0">
+            {leaving && (
+              <div key={`${leaving.scene.id}-out`} className="showcase-sink absolute inset-0">
+                <ShowcaseScene scene={leaving.scene} />
+              </div>
+            )}
+            <div key={current.scene.id} className="absolute inset-0">
+              <ShowcaseScene scene={current.scene} />
             </div>
-          )}
-          <div key={current.scene.id} className="absolute inset-0">
-            <ShowcaseScene scene={current.scene} />
           </div>
         </div>
-      </div>
-    </TranslationProvider>
+      </TranslationProvider>
+    </ShowcaseBoundary>
   )
 }

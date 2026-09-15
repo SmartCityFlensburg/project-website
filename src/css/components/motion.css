@@ -54,17 +54,60 @@
   animation: showcase-sink 600ms var(--ease-spring-settle) both !important;
 }
 
-@keyframes showcase-pan {
+/* Four Ken Burns directions for the full-bleed photos: 'in' grows the crop,
+   'out' shrinks it back toward the resting scale, and 'a'/'b' drift toward
+   opposite corners. The resting scale never drops below 1.06 so the drift
+   always has overscan to pan within — no edge of the photo is ever exposed. */
+@keyframes showcase-pan-in-a {
   from {
-    transform: scale(1.04);
+    transform: scale(1.06) translate(0%, 0%);
   }
   to {
-    transform: scale(1.14) translate(-1.5%, -1%);
+    transform: scale(1.22) translate(-2.5%, -1.5%);
   }
 }
 
-.showcase-pan {
-  animation: showcase-pan linear both !important;
+.showcase-pan-in-a {
+  animation: showcase-pan-in-a linear both !important;
+}
+
+@keyframes showcase-pan-in-b {
+  from {
+    transform: scale(1.06) translate(0%, 0%);
+  }
+  to {
+    transform: scale(1.22) translate(2.5%, 1.5%);
+  }
+}
+
+.showcase-pan-in-b {
+  animation: showcase-pan-in-b linear both !important;
+}
+
+@keyframes showcase-pan-out-a {
+  from {
+    transform: scale(1.22) translate(-2.5%, -1.5%);
+  }
+  to {
+    transform: scale(1.06) translate(0%, 0%);
+  }
+}
+
+.showcase-pan-out-a {
+  animation: showcase-pan-out-a linear both !important;
+}
+
+@keyframes showcase-pan-out-b {
+  from {
+    transform: scale(1.22) translate(2.5%, 1.5%);
+  }
+  to {
+    transform: scale(1.06) translate(0%, 0%);
+  }
+}
+
+.showcase-pan-out-b {
+  animation: showcase-pan-out-b linear both !important;
 }
 
 /* A crop-free variant for the video fallback: the image is a full-app

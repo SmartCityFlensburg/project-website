@@ -1,9 +1,8 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import LottiePlayer from '../LottiePlayer'
 import cableAnimation from '../../../json/cableAnimation.json'
-import wordmarkColor from '../../../assets/press/green-ecolution-logo-color.svg'
 import { showcaseClipBaseUrl } from '../../../lib/runtimeEnv'
-import type { Visual } from '../../../data/showcase'
+import type { PanVariant, Visual } from '../../../data/showcase'
 
 const LOTTIE = {
   cable: cableAnimation,
@@ -28,10 +27,18 @@ function assetUrl(name: string): string {
   return entry.default.src
 }
 
+const PAN_CLASS: Record<PanVariant, string> = {
+  'in-a': 'showcase-pan-in-a',
+  'in-b': 'showcase-pan-in-b',
+  'out-a': 'showcase-pan-out-a',
+  'out-b': 'showcase-pan-out-b',
+}
+
 function PannedImage({
   name,
   seconds,
   contain = false,
+  pan = 'in-a',
 }: {
   name: string
   seconds: number
@@ -39,6 +46,7 @@ function PannedImage({
   // visible rather than crop like a photo, so it gets the smaller,
   // crop-free pan instead of the regular Ken Burns sweep.
   contain?: boolean
+  pan?: PanVariant
 }) {
   return (
     <img
@@ -47,10 +55,27 @@ function PannedImage({
       className={
         contain
           ? 'showcase-pan-contain h-full w-full object-contain'
-          : 'showcase-pan h-full w-full object-cover'
+          : `${PAN_CLASS[pan]} h-full w-full object-cover`
       }
       style={{ animationDuration: `${seconds}s` }}
     />
+  )
+}
+
+// A screencast's own left/right edge must not sit flush against the plate
+// edge, and it reads as an exhibit rather than a cropped rectangle once it
+// carries margin, rounded corners and a soft shadow. Shared by the video and
+// its screenshot fallback so both get the same treatment.
+function ExhibitMedia({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center p-10">
+      <div
+        className="relative h-full w-full overflow-hidden rounded-[1.5rem] bg-white p-3 ring-1 ring-[#2D4A27]/10"
+        style={{ boxShadow: '0 2rem 4.5rem -1.75rem rgba(45,74,39,0.4)' }}
+      >
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -59,10 +84,10 @@ const logos = import.meta.glob<{ default: { src: string } }>('../../../assets/lo
 })
 
 const PARTNERS = [
-  { file: 'hochschule-flensburg.png', height: 'h-16' },
   { file: 'progeek.svg', height: 'h-20' },
   { file: 'smarte-grenzregion.png', height: 'h-14' },
-  { file: 'tbz.png', height: 'h-12' },
+  { file: 'hochschule-flensburg.png', height: 'h-16' },
+  { file: 'tbz.svg', height: 'h-14' },
 ] as const
 
 function PartnerLogos() {
@@ -107,33 +132,39 @@ function ShowcaseVideo({
   // Until a clip exists in the bucket the slot shows its screenshot, so the
   // loop is complete from day one and gains the recording without a change.
   if (clipFailed) {
-    return <PannedImage name={visual.poster} seconds={seconds} contain />
+    return (
+      <ExhibitMedia>
+        <PannedImage name={visual.poster} seconds={seconds} contain />
+      </ExhibitMedia>
+    )
   }
 
   return (
-    <video
-      src={`${showcaseClipBaseUrl()}/${visual.clip}`}
-      poster={assetUrl(visual.poster)}
-      autoPlay
-      muted
-      loop
-      playsInline
-      preload="auto"
-      // contain, not cover: a screencast is a UI recording, not a photo — a
-      // crop that cuts off part of the app is a defect, not a stylistic choice.
-      className="h-full w-full object-contain"
-      onError={() => {
-        failedClips.add(visual.clip)
-        setClipFailed(true)
-      }}
-    />
+    <ExhibitMedia>
+      <video
+        src={`${showcaseClipBaseUrl()}/${visual.clip}`}
+        poster={assetUrl(visual.poster)}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        // contain, not cover: a screencast is a UI recording, not a photo — a
+        // crop that cuts off part of the app is a defect, not a stylistic choice.
+        className="h-full w-full object-contain"
+        onError={() => {
+          failedClips.add(visual.clip)
+          setClipFailed(true)
+        }}
+      />
+    </ExhibitMedia>
   )
 }
 
 export default function ShowcaseVisual({ visual, seconds }: { visual: Visual; seconds: number }) {
   switch (visual.kind) {
     case 'image':
-      return <PannedImage name={visual.asset} seconds={seconds} />
+      return <PannedImage name={visual.asset} seconds={seconds} pan={visual.pan} />
 
     case 'lottie':
       return (
@@ -157,9 +188,9 @@ export default function ShowcaseVisual({ visual, seconds }: { visual: Visual; se
       return <PartnerLogos />
 
     case 'wordmark':
-      return (
-        <img src={wordmarkColor.src} alt="" className="showcase-rise mx-auto mb-10 h-48 w-auto" />
-      )
+      // TitleScene draws its own mark directly, composed with the headline
+      // rather than routed through this generic slot.
+      return null
 
     case 'demo':
       // DemoScene draws its own QR code and addresses; there is no

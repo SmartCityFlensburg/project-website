@@ -5,6 +5,7 @@ import ExhibitScene from './ExhibitScene'
 import PhotoScene from './PhotoScene'
 import ShowcaseVisual from './ShowcaseVisual'
 import StatementScene from './StatementScene'
+import TitleScene from './TitleScene'
 
 // scene only changes ten times per 99s loop and is a stable reference from
 // the module-level showcaseScenes array, but the loop clock re-renders its
@@ -14,6 +15,8 @@ function ShowcaseScene({ scene }: { scene: Scene }) {
   const visual = <ShowcaseVisual visual={scene.visual} seconds={scene.seconds} />
 
   switch (scene.layout) {
+    case 'title':
+      return <TitleScene scene={scene} />
     case 'statement':
       return (
         <StatementScene scene={scene} dark={dark}>

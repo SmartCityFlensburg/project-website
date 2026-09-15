@@ -1,6 +1,12 @@
 export type Act = 'lage' | 'boden' | 'software' | 'fahrt'
 export type Step = 'messen' | 'verstehen' | 'handeln'
-export type Layout = 'statement' | 'exhibit' | 'photo' | 'demo'
+export type Layout = 'title' | 'statement' | 'exhibit' | 'photo' | 'demo'
+
+// The four Ken Burns directions a full-bleed photo can carry: 'in' grows the
+// crop over the scene, 'out' shrinks it back toward the resting scale, and
+// 'a'/'b' send the drift to opposite corners so neighbouring photo scenes
+// never repeat the same move.
+export type PanVariant = 'in-a' | 'in-b' | 'out-a' | 'out-b'
 
 export type SceneId =
   | 'title'
@@ -19,7 +25,7 @@ export type SceneId =
 
 export type Visual =
   | { kind: 'lottie'; name: 'cable' }
-  | { kind: 'image'; asset: string }
+  | { kind: 'image'; asset: string; pan?: PanVariant }
   | { kind: 'video'; clip: string; poster: string }
   | { kind: 'tour' }
   | { kind: 'partners' }
@@ -53,7 +59,7 @@ export const showcaseScenes: Scene[] = [
   {
     id: 'title',
     act: 'software',
-    layout: 'statement',
+    layout: 'title',
     seconds: 12,
     hideChrome: ['logo'],
     visual: { kind: 'wordmark' },
@@ -63,14 +69,14 @@ export const showcaseScenes: Scene[] = [
     act: 'lage',
     layout: 'photo',
     seconds: 14,
-    visual: { kind: 'image', asset: 'bewaesserung-jungbaum-tbz.jpg' },
+    visual: { kind: 'image', asset: 'bewaesserung-jungbaum-tbz.jpg', pan: 'in-a' },
   },
   {
     id: 'water',
     act: 'lage',
     layout: 'photo',
     seconds: 13,
-    visual: { kind: 'image', asset: 'baumscheibe-bagger-tbz.jpg' },
+    visual: { kind: 'image', asset: 'baumscheibe-bagger-tbz.jpg', pan: 'out-b' },
   },
   {
     id: 'sensor',
@@ -79,7 +85,7 @@ export const showcaseScenes: Scene[] = [
     seconds: 14,
     step: 'messen',
     opensStep: true,
-    visual: { kind: 'image', asset: 'sensor-einbau-erdbohrer.jpg' },
+    visual: { kind: 'image', asset: 'sensor-einbau-erdbohrer.jpg', pan: 'in-b' },
   },
   {
     id: 'lorawan',
@@ -137,14 +143,14 @@ export const showcaseScenes: Scene[] = [
     act: 'fahrt',
     layout: 'photo',
     seconds: 13,
-    visual: { kind: 'image', asset: 'einsatz-jungbaum-tablet.jpg' },
+    visual: { kind: 'image', asset: 'einsatz-jungbaum-tablet.jpg', pan: 'out-a' },
   },
   {
     id: 'team',
     act: 'fahrt',
     layout: 'photo',
     seconds: 13,
-    visual: { kind: 'image', asset: 'team-progeek.jpg' },
+    visual: { kind: 'image', asset: 'team-progeek.jpg', pan: 'in-b' },
   },
   {
     id: 'open-source',

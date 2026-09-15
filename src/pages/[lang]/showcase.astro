@@ -32,6 +32,6 @@ const strings = withoutMissing(pickStrings(language, 'showcase', keys))
 
 <ShowcaseLayout title={t('meta.title')} description={t('meta.description')} language={language}>
   <main class="h-full w-full">
-    <ShowcaseLoop client:only="react" language={language} strings={strings} />
+    <ShowcaseLoop client:only="react" strings={strings} />
   </main>
 </ShowcaseLayout>

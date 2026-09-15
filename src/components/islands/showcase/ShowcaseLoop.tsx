@@ -17,7 +17,6 @@ import ShowcaseTour from './ShowcaseTour'
 import TourPath from './TourPath'
 
 interface Props {
-  language: string
   strings: Record<string, string>
 }
 

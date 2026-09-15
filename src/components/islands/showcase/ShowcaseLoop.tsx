@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 import { TranslationProvider } from '../../../i18n/TranslationProvider'
 import {
   isDarkAct,
@@ -17,6 +17,7 @@ import {
   stepProgress,
   type TimelineEntry,
 } from '../../../lib/showcase/timeline'
+import { useShowcaseClock } from '../../../lib/showcase/useShowcaseClock'
 import { useT } from '../../../i18n/useT'
 import logoColor from '../../../assets/press/green-ecolution-logo-color.svg'
 import logoWhite from '../../../assets/press/green-ecolution-logo-white.svg'
@@ -195,20 +196,7 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
 }
 
 export default function ShowcaseLoop({ strings }: Props) {
-  const [elapsedMs, setElapsedMs] = useState(0)
-
-  useEffect(() => {
-    const started = performance.now()
-    let frame = 0
-
-    const tick = (now: number) => {
-      setElapsedMs(now - started)
-      frame = requestAnimationFrame(tick)
-    }
-
-    frame = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame)
-  }, [])
+  const elapsedMs = useShowcaseClock(timeline)
 
   return (
     <ShowcaseBoundary sceneId={sceneAt(timeline, elapsedMs).scene.id}>

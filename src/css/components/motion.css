@@ -20,3 +20,36 @@
     display: none;
   }
 }
+
+/* The booth loop deliberately ignores prefers-reduced-motion: it has no user
+   whose system setting could be meant, and a still frame on a trade fair
+   monitor reads as a crash. The rule above still applies everywhere else. */
+@keyframes showcase-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.showcase-rise {
+  animation: showcase-rise 620ms var(--ease-spring-settle) both;
+}
+
+@keyframes showcase-sink {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+
+.showcase-sink {
+  animation: showcase-sink 600ms var(--ease-spring-settle) both;
+}

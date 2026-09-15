@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TranslationProvider } from '../../../i18n/TranslationProvider'
 import { showcaseScenes, type Act } from '../../../data/showcase'
-import { buildTimeline, sceneAt } from '../../../lib/showcase/timeline'
+import { buildTimeline, msIntoScene, previousOf, sceneAt } from '../../../lib/showcase/timeline'
 import ShowcaseScene from './ShowcaseScene'
 
 interface Props {
@@ -15,6 +15,8 @@ const ACT_BACKGROUND: Record<Act, string> = {
   software: '#FFFFFF',
   fahrt: '#2D4A27',
 }
+
+const FADE_MS = 600
 
 const timeline = buildTimeline(showcaseScenes)
 
@@ -35,6 +37,11 @@ export default function ShowcaseLoop({ strings }: Props) {
   }, [])
 
   const current = sceneAt(timeline, elapsedMs)
+  const since = msIntoScene(timeline, current, elapsedMs)
+  // The scene that just left keeps rendering until its fade is done, so the
+  // change reads as a dissolve instead of a cut. Derived from the clock rather
+  // than a timer: a second time source beside the loop's own would drift.
+  const leaving = since < FADE_MS ? previousOf(timeline, current) : null
 
   return (
     <TranslationProvider strings={strings}>
@@ -45,7 +52,16 @@ export default function ShowcaseLoop({ strings }: Props) {
           className="absolute inset-0 transition-colors duration-[1200ms]"
           style={{ backgroundColor: ACT_BACKGROUND[current.scene.act] }}
         />
-        <ShowcaseScene key={current.scene.id} scene={current.scene} />
+        <div className="absolute inset-0">
+          {leaving && (
+            <div key={`${leaving.scene.id}-out`} className="showcase-sink absolute inset-0">
+              <ShowcaseScene scene={leaving.scene} />
+            </div>
+          )}
+          <div key={current.scene.id} className="absolute inset-0">
+            <ShowcaseScene scene={current.scene} />
+          </div>
+        </div>
       </div>
     </TranslationProvider>
   )

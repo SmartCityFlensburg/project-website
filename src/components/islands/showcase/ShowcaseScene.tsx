@@ -1,16 +1,17 @@
-import { useT } from '../../../i18n/useT'
 import type { Scene } from '../../../data/showcase'
+import ExhibitScene from './ExhibitScene'
+import PhotoScene from './PhotoScene'
+import StatementScene from './StatementScene'
 
 export default function ShowcaseScene({ scene }: { scene: Scene }) {
-  const t = useT()
   const dark = scene.act === 'lage' || scene.act === 'fahrt'
 
-  return (
-    <div
-      className="relative flex h-full w-full items-center justify-center px-24"
-      style={{ color: dark ? '#E8EBCC' : '#1F1F1F' }}
-    >
-      <p className="font-lato text-6xl font-light">{t(`scenes.${scene.id}.statement`)}</p>
-    </div>
-  )
+  switch (scene.layout) {
+    case 'statement':
+      return <StatementScene scene={scene} dark={dark} />
+    case 'exhibit':
+      return <ExhibitScene scene={scene} dark={dark} />
+    case 'photo':
+      return <PhotoScene scene={scene} />
+  }
 }

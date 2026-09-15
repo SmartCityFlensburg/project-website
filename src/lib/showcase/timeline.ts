@@ -40,6 +40,20 @@ export function loopProgress(scenes: Scene[], elapsedMs: number): number {
   return intoLoop(totalMs, elapsedMs) / totalMs
 }
 
+export function previousOf(timeline: TimelineEntry[], entry: TimelineEntry): TimelineEntry {
+  const index = timeline.indexOf(entry)
+  return timeline[(index - 1 + timeline.length) % timeline.length]
+}
+
+export function msIntoScene(
+  timeline: TimelineEntry[],
+  entry: TimelineEntry,
+  elapsedMs: number,
+): number {
+  const totalMs = timeline[timeline.length - 1].endMs
+  return (((elapsedMs % totalMs) + totalMs) % totalMs) - entry.startMs
+}
+
 export function reachedSteps(scenes: Scene[], elapsedMs: number): Step[] {
   const timeline = buildTimeline(scenes)
   const position = intoLoop(totalDurationMs(scenes), elapsedMs)

@@ -3,7 +3,7 @@ import LottiePlayer from '../LottiePlayer'
 import cableAnimation from '../../../json/cableAnimation.json'
 import dashboardAnimation from '../../../json/dashboardAnimation.json'
 import logoAnimation from '../../../json/logoAnimation.json'
-import { videoBaseUrl } from '../../../lib/runtimeEnv'
+import { showcaseClipBaseUrl } from '../../../lib/runtimeEnv'
 import type { Visual } from '../../../data/showcase'
 
 const LOTTIE = {
@@ -100,7 +100,7 @@ function ShowcaseVideo({
 
   return (
     <video
-      src={`${videoBaseUrl()}/${visual.clip}`}
+      src={`${showcaseClipBaseUrl()}/${visual.clip}`}
       poster={assetUrl(visual.poster)}
       autoPlay
       muted

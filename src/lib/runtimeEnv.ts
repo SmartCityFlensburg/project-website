@@ -22,3 +22,15 @@ export function videoBaseUrl(): string {
   }
   return runtimeEnv().VITE_VIDEO_BASE_URL ?? VIDEO_BASE_URL ?? DEFAULT_VIDEO_BASE_URL
 }
+
+// The booth build bakes VIDEO_BASE_URL=/showcase-clips so the loop finds its
+// clips under public/showcase-clips on the show floor. pnpm dev builds
+// without that override, and videoBaseUrl()'s dev branch answers '' for the
+// project videos' vite-proxied paths — which the showcase clips never went
+// through, so dev needs its own fixed local path here instead.
+export function showcaseClipBaseUrl(): string {
+  if (import.meta.env.DEV) {
+    return '/showcase-clips'
+  }
+  return videoBaseUrl()
+}

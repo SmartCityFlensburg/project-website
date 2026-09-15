@@ -10,11 +10,13 @@ export interface TourLeg {
 // dwells: it drops at each stop and rises back to 1 at the refill station and
 // at the depot. The gauge beside the model reads from it.
 // Every mark sits on a straight run, so a curve through all points stays on the
-// legs and the vehicle never cuts a corner.
+// legs and the vehicle never cuts a corner. That goes for the depot too: the
+// tour starts and ends just past the last bend, so the loop closes without a
+// kink and the vehicle leaves the depot the way it arrived.
 export const tourLegs: TourLeg[] = [
   {
     points: [
-      [10, 62],
+      [10, 56],
       [10, 26],
       [18, 26],
     ],
@@ -69,6 +71,7 @@ export const tourLegs: TourLeg[] = [
       [26, 58],
       [26, 62],
       [10, 62],
+      [10, 56],
     ],
     fill: 0.18,
   },
@@ -81,7 +84,7 @@ export interface TourMark {
 }
 
 export const tourMarks: TourMark[] = [
-  { at: [10, 62], kind: 'depot', label: 'Depot' },
+  { at: [10, 56], kind: 'depot', label: 'Depot' },
   { at: [18, 26], kind: 'stop', label: '1' },
   { at: [40, 12], kind: 'stop', label: '2' },
   { at: [56, 30], kind: 'refill', label: 'Nachfüllstation' },
@@ -90,38 +93,205 @@ export const tourMarks: TourMark[] = [
   { at: [52, 58], kind: 'stop', label: '5' },
 ]
 
+/** The two faces the camera sees; a door can only be on one of those. */
+export type VisibleFace = '+x' | '+z'
+
 export interface CityBlock {
   x: number
   z: number
   width: number
   depth: number
+  /** Height of the walls up to the eaves or the parapet. */
   height: number
+  floors: number
+  roof: 'flat' | 'gable'
+  /** Rise of a gable roof above the walls; ignored for a flat roof. */
+  roofHeight: number
+  /** Index into blockTones. */
+  tone: number
+  door: VisibleFace
 }
 
-// Placed by hand around the route, never closer than three units to it.
+// Placed by hand around the route, never closer than half a unit to the kerb,
+// and never into one another.
 export const cityBlocks: CityBlock[] = [
-  { x: 34, z: 43, width: 13, depth: 11, height: 3.5 },
-  { x: 18, z: 44, width: 9, depth: 13, height: 2.5 },
-  { x: 34, z: 21, width: 8, depth: 8, height: 5 },
-  { x: 58, z: 21, width: 10, depth: 8, height: 3 },
-  { x: 63, z: 46, width: 12, depth: 10, height: 3 },
-  { x: 0, z: 30, width: 10, depth: 12, height: 3.5 },
-  { x: 14, z: 14, width: 9, depth: 8, height: 3 },
-  { x: 24, z: 4, width: 10, depth: 8, height: 3.5 },
-  { x: 56, z: 2, width: 11, depth: 8, height: 2.5 },
-  { x: 64, z: 4, width: 10, depth: 8, height: 3.5 },
+  {
+    x: 34,
+    z: 43,
+    width: 13,
+    depth: 11,
+    height: 4.4,
+    floors: 2,
+    roof: 'flat',
+    roofHeight: 0,
+    tone: 0,
+    door: '+z',
+  },
+  {
+    x: 18.5,
+    z: 44,
+    width: 9,
+    depth: 13,
+    height: 4.4,
+    floors: 2,
+    roof: 'gable',
+    roofHeight: 2.2,
+    tone: 1,
+    door: '+z',
+  },
+  {
+    x: 33.5,
+    z: 21,
+    width: 7,
+    depth: 8,
+    height: 6.6,
+    floors: 3,
+    roof: 'flat',
+    roofHeight: 0,
+    tone: 2,
+    door: '+z',
+  },
+  {
+    x: 58,
+    z: 21,
+    width: 10,
+    depth: 8,
+    height: 4.4,
+    floors: 2,
+    roof: 'gable',
+    roofHeight: 2,
+    tone: 3,
+    door: '+x',
+  },
+  {
+    x: 63,
+    z: 46,
+    width: 12,
+    depth: 10,
+    height: 4.4,
+    floors: 2,
+    roof: 'flat',
+    roofHeight: 0,
+    tone: 1,
+    door: '+z',
+  },
+  {
+    x: 0,
+    z: 30,
+    width: 10,
+    depth: 12,
+    height: 4.4,
+    floors: 2,
+    roof: 'gable',
+    roofHeight: 2.4,
+    tone: 2,
+    door: '+x',
+  },
+  {
+    x: 14,
+    z: 14,
+    width: 9,
+    depth: 8,
+    height: 2.4,
+    floors: 1,
+    roof: 'flat',
+    roofHeight: 0,
+    tone: 0,
+    door: '+z',
+  },
+  {
+    x: 24,
+    z: 3.5,
+    width: 10,
+    depth: 8,
+    height: 4.4,
+    floors: 2,
+    roof: 'gable',
+    roofHeight: 2,
+    tone: 3,
+    door: '+z',
+  },
+  {
+    x: 53,
+    z: 3.5,
+    width: 11,
+    depth: 8,
+    height: 2.4,
+    floors: 1,
+    roof: 'flat',
+    roofHeight: 0,
+    tone: 1,
+    door: '+z',
+  },
+  {
+    x: 65,
+    z: 3.5,
+    width: 10,
+    depth: 8,
+    height: 4.4,
+    floors: 2,
+    roof: 'gable',
+    roofHeight: 2.2,
+    tone: 0,
+    door: '+x',
+  },
 ]
+
+export const windowSpec = {
+  width: 1.1,
+  height: 1.3,
+  /** Wall left between two windows and at either end of a row. */
+  gap: 0.9,
+  /** Wall below a window in its storey. */
+  sill: 0.6,
+  /** How far the frame stands proud of the wall. */
+  relief: 0.08,
+} as const
+
+/** How many windows fit across a face of the given length. */
+export function baysFor(faceLength: number) {
+  return Math.max(
+    0,
+    Math.floor((faceLength - windowSpec.gap) / (windowSpec.width + windowSpec.gap)),
+  )
+}
+
+export const parapet = { height: 0.3, width: 0.35 } as const
+export const doorSpec = { width: 1.4, height: 2.1 } as const
+
+export interface Lawn {
+  x: number
+  z: number
+  width: number
+  depth: number
+}
+
+// Green patches on the ground between the blocks, low enough to walk over.
+export const lawns: Lawn[] = [
+  { x: 40, z: 52, width: 12, depth: 5 },
+  { x: 3.5, z: 46, width: 6, depth: 8 },
+  { x: 66, z: 65, width: 12, depth: 5 },
+  { x: 36, z: 66, width: 10, depth: 5 },
+  { x: 52, z: 40, width: 5, depth: 8 },
+]
+
+export const lawnHeight = 0.08
 
 export const roadHeight = 0.2
 export const roadWidth = 5
 export const centerLine = { width: 0.5, dash: 2.6, gap: 3.2, lift: 0.05 } as const
-export const depotWidth = 11
-export const depotDepth = 8
+/** A pale pavement either side of the carriageway, a step below its surface. */
+export const kerb = { width: 0.9, drop: 0.08 } as const
+export const depotWidth = 10
+export const depotDepth = 9
 export const depotHeight = 4.6
+export const depotRoofHeight = 1.8
+export const depotDoor = { width: 4.2, height: 3.6 } as const
 
-// The hall stands beside the corner where the tour starts and ends, so the
-// vehicle parks in front of it rather than inside it.
-export const depotPosition: GroundPoint = [11, 68]
+// The hall stands west of the first leg with its gate to the road, so the
+// vehicle parks in the forecourt in front of it. It has to stay behind the
+// parked vehicle as the camera sees it, or it hides the vehicle instead.
+export const depotPosition: GroundPoint = [0.5, 56]
 // Markers stand at the kerb, never on the carriageway, so the vehicle drives
 // past them instead of through them.
 export const markerOffset = 3.4
@@ -150,26 +320,49 @@ export const refillMarker = {
 export const tourColors = {
   road: '#4C7741',
   roadLine: '#DCE3C9',
+  kerb: '#E4E7DA',
   depot: '#3D5F35',
+  depotRoof: '#34522D',
+  depotDoor: '#5C7F52',
   stop: '#658A58',
   refill: '#ACB63B',
+  refillCabinet: '#8E962F',
   block: '#EAEDE2',
   blockTop: '#F6F7F1',
   blockShaded: '#DFE3D6',
+  blockRoof: '#D9DDCE',
+  blockGableRoof: '#C9CFBD',
+  window: '#AFC4B8',
+  windowFrame: '#F7F8F2',
+  door: '#7A8F6E',
   unitTop: '#E7EBDC',
   unitLit: '#DCE1CF',
   unitShaded: '#CFD5C1',
   ground: '#F3F5EC',
   groundSide: '#E2E6D6',
+  lawn: '#C9DBB0',
+  treePitSoil: '#A8906E',
+  treePitKerb: '#D8DBCB',
   treeTrunk: '#8A6E52',
   treeCanopy: '#82AD66',
+  treeCanopyLit: '#95BC75',
   treeCanopyDark: '#66914F',
+  treeCanopyDeep: '#557E42',
+  shadow: '#2C4726',
   vehicleBody: '#2C4726',
+  vehicleTrim: '#3B5C33',
   vehicleTank: '#F1F3EA',
+  vehicleTankBand: '#DDE2D2',
   vehicleGlass: '#C7D6CB',
   vehicleWheel: '#243722',
+  vehicleHub: '#B9C1B0',
+  vehicleLamp: '#F6F1D6',
   water: '#B7CFC2',
 } as const
+
+// Pale walls in four near tones: enough for neighbouring blocks to read as
+// separate houses without any of them competing with the vehicle.
+export const blockTones = ['#EAEDE2', '#E3E4D6', '#EDEBE0', '#DEE3D9'] as const
 
 function polylineLength(points: readonly GroundPoint[]) {
   let length = 0
@@ -180,7 +373,8 @@ function polylineLength(points: readonly GroundPoint[]) {
 }
 
 const legLengths = tourLegs.map((leg) => polylineLength(leg.points))
-const tourLength = legLengths.reduce((sum, length) => sum + length, 0)
+/** Ground units driven in one full round; the wheels spin against it. */
+export const tourLength = legLengths.reduce((sum, length) => sum + length, 0)
 
 const legEnd = (() => {
   let running = 0
@@ -300,12 +494,12 @@ export interface RoofUnit {
   base: number
 }
 
-// `base` is the height of the roof the unit stands on.
+// `base` is the height of the flat roof the unit stands on.
 export const roofUnits: RoofUnit[] = [
-  { at: [31.5, 41], width: 2.4, depth: 2, height: 1, base: 3.5 },
-  { at: [61, 44.5], width: 2.2, depth: 2, height: 0.9, base: 3 },
-  { at: [66, 48.5], width: 1.6, depth: 1.6, height: 0.7, base: 3 },
-  { at: [22.5, 3], width: 2, depth: 1.8, height: 0.8, base: 3.5 },
+  { at: [31.5, 41], width: 2.4, depth: 2, height: 1, base: 4.4 },
+  { at: [61, 44.5], width: 2.2, depth: 2, height: 0.9, base: 4.4 },
+  { at: [66, 48.5], width: 1.6, depth: 1.6, height: 0.7, base: 4.4 },
+  { at: [34.5, 19.5], width: 2, depth: 1.8, height: 0.8, base: 6.6 },
 ]
 
 // A rounded diorama plate under the whole scene, sized so everything above
@@ -331,10 +525,15 @@ export const groundPlate = (() => {
   include(depotPosition[0] - depotWidth / 2, depotPosition[1] - depotDepth / 2)
   include(depotPosition[0] + depotWidth / 2, depotPosition[1] + depotDepth / 2)
 
+  for (const lawn of lawns) {
+    include(lawn.x - lawn.width / 2, lawn.z - lawn.depth / 2)
+    include(lawn.x + lawn.width / 2, lawn.z + lawn.depth / 2)
+  }
+
   for (const leg of tourLegs) {
     for (const [x, z] of leg.points) {
-      include(x - roadWidth / 2, z - roadWidth / 2)
-      include(x + roadWidth / 2, z + roadWidth / 2)
+      include(x - roadWidth / 2 - kerb.width, z - roadWidth / 2 - kerb.width)
+      include(x + roadWidth / 2 + kerb.width, z + roadWidth / 2 + kerb.width)
     }
   }
 
@@ -488,16 +687,17 @@ function projectedBounds() {
   const points: [number, number][] = []
 
   for (const block of cityBlocks) {
+    const top = block.height + (block.roof === 'gable' ? block.roofHeight : parapet.height)
     for (const x of [block.x - block.width / 2, block.x + block.width / 2]) {
       for (const z of [block.z - block.depth / 2, block.z + block.depth / 2]) {
-        points.push(projectIso(x, z, 0), projectIso(x, z, block.height))
+        points.push(projectIso(x, z, 0), projectIso(x, z, top))
       }
     }
   }
 
   for (const x of [depotPosition[0] - depotWidth / 2, depotPosition[0] + depotWidth / 2]) {
     for (const z of [depotPosition[1] - depotDepth / 2, depotPosition[1] + depotDepth / 2]) {
-      points.push(projectIso(x, z, 0), projectIso(x, z, depotHeight))
+      points.push(projectIso(x, z, 0), projectIso(x, z, depotHeight + depotRoofHeight))
     }
   }
 

@@ -295,6 +295,11 @@ export interface Mast {
    * which is why the rig is carried by the stays instead.
    */
   boom: number
+  /**
+   * Length of the gaff, the spar that carries the head of a four-cornered
+   * mainsail above the boom. Only a mast with a boom sets one.
+   */
+  gaff?: number
 }
 
 export interface Ship {
@@ -304,51 +309,58 @@ export interface Ship {
   heading: number
   hullLength: number
   hullHeight: number
+  /** Width across the hull amidships, before the ends are drawn in. */
+  beam: number
+  /** How far the bowsprit reaches past the stem, zero for a ship without one. */
+  bowsprit: number
+  /** A trunk cabin on deck, as an offset aft of centre and its size. */
+  deckhouse?: { at: number; length: number; height: number }
   masts: readonly Mast[]
   funnel?: { height: number; radius: number }
 }
 
 // The museum harbour is the one silhouette no other town on a fjord has: a
-// stand of bare masts on the water, with the steamer's funnel among them. The
-// fleet lies right of centre, clear of the headline's ground. Masts stay below
-// the church spires so the town keeps the skyline and the harbour sits under it.
+// stand of masts on the water, with the steamer's funnel among them. Three
+// ships, well apart: any closer together and the rigs read as one thicket, and
+// the town behind them stops being a town. The fleet stays in the right half
+// of the frame for the whole drift, clear of the headline's ground on the left.
+// Masts stay below the church spires so the skyline still belongs to Flensburg
+// and the harbour sits under it.
 export const museumShips: readonly Ship[] = [
   {
-    x: -14,
+    x: 10,
     z: -104,
     heading: 0.22,
     hullLength: 24,
     hullHeight: 5.2,
+    beam: 6.4,
+    bowsprit: 6,
+    deckhouse: { at: 4.6, length: 5.4, height: 1.5 },
     masts: [
-      { at: -5, height: 17, boom: 9 },
+      { at: -5, height: 17, boom: 9, gaff: 7.5 },
       { at: 6, height: 13.5, boom: 0 },
     ],
   },
   {
-    x: 14,
+    x: 40,
     z: -92,
     heading: -0.14,
     hullLength: 19,
     hullHeight: 4.6,
-    masts: [{ at: -1, height: 15, boom: 8 }],
+    beam: 5.4,
+    bowsprit: 5,
+    deckhouse: { at: 3.4, length: 4.2, height: 1.3 },
+    masts: [{ at: -1, height: 15, boom: 8, gaff: 6.8 }],
   },
   {
-    x: 42,
-    z: -110,
-    heading: 0.35,
-    hullLength: 21,
-    hullHeight: 4.9,
-    masts: [
-      { at: -4, height: 16, boom: 8.5 },
-      { at: 5.5, height: 11, boom: 0 },
-    ],
-  },
-  {
-    x: 72,
+    x: 64,
     z: -94,
     heading: -0.28,
     hullLength: 26,
     hullHeight: 5.6,
+    beam: 7.2,
+    bowsprit: 0,
+    deckhouse: { at: 1.5, length: 9, height: 2.2 },
     masts: [
       { at: -7, height: 10, boom: 0 },
       { at: 8, height: 9, boom: 0 },
@@ -416,6 +428,13 @@ export const fordeColors = {
   shore: '#9EA694',
   shoreEdge: '#6E7665',
   hull: '#2E4438',
+  // The sheer strake. One light band under the deck edge is what separates a
+  // hull from the water behind it at this distance, where the whole ship is
+  // barely thirty pixels tall.
+  hullStrake: '#9AA795',
+  hullBoot: '#1F2E27',
+  deckhouse: '#CFC9B7',
+  deckhouseRoof: '#4A5A50',
   // Weathered spruce, not near-black: the masts were the darkest thing on
   // screen and took the skyline away from the town.
   mast: '#6A5942',

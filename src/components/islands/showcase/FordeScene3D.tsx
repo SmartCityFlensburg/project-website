@@ -10,8 +10,10 @@ import {
   IcosahedronGeometry,
   Matrix4,
   PlaneGeometry,
+  Quaternion,
   Shape,
   ShapeGeometry,
+  Vector3,
   type BufferGeometry,
   type Group,
   type Mesh,
@@ -344,129 +346,346 @@ function HarbourFront() {
   )
 }
 
-const mastGeometry = new CylinderGeometry(0.22, 0.3, 1, 6)
-const sparGeometry = new CylinderGeometry(0.15, 0.15, 1, 6)
-const stayGeometry = new CylinderGeometry(0.09, 0.09, 1, 5)
+// A ship is close to fifty parts once it has a rig worth looking at, so each
+// one is merged into a single geometry with its tones in the vertex colours,
+// the same way the avenue is built. Everything below works in the ship's own
+// frame: x runs aft from the stem, y up from the waterline, z across the beam.
+const unitMast = new CylinderGeometry(0.5, 1, 1, 6)
+const unitLine = new CylinderGeometry(1, 1, 1, 5)
+const unitFunnel = new CylinderGeometry(1, 1, 1, 12)
+const ALONG_SPAR = new Vector3(0, 1, 0)
+const UNMOVED = new Matrix4()
+
+type Point = readonly [number, number]
 
 /**
- * A line from the masthead down to a point on the deck. Both ends lie in the
- * ship's fore-and-aft plane, so one rotation about z is enough to aim a
- * y-aligned cylinder along it.
+ * A mast, spar or stay laid between two points. The unit cylinder stands along
+ * y, so turning that axis onto the run between the ends puts the piece at
+ * whatever angle it leans, in or out of the fore-and-aft plane.
  */
-function Stay({ run, height }: { run: number; height: number }) {
-  const length = Math.hypot(run, height)
+function rigging(
+  unit: CylinderGeometry,
+  from: Vec3,
+  to: Vec3,
+  radius: number,
+  color: string,
+): BufferGeometry {
+  const run = new Vector3(to[0] - from[0], to[1] - from[1], to[2] - from[2])
+  const length = run.length()
 
-  return (
-    <mesh
-      geometry={stayGeometry}
-      position={[run / 2, height / 2, 0]}
-      rotation={[0, 0, Math.atan2(-run, -height)]}
-      scale={[1, length, 1]}
-    >
-      <meshLambertMaterial color={fordeColors.mast} />
-    </mesh>
+  return painted(
+    unit,
+    new Matrix4().compose(
+      new Vector3((from[0] + to[0]) / 2, (from[1] + to[1]) / 2, (from[2] + to[2]) / 2),
+      new Quaternion().setFromUnitVectors(ALONG_SPAR, run.normalize()),
+      new Vector3(radius, length, radius),
+    ),
+    color,
   )
 }
 
+const HULL_FLOOR = -1.6
+const SHEER_SAMPLES = 10
+/** How far the rail cap stands above the deck edge. */
+const RAIL_CAP = 0.18
 const BOOM_HEIGHT = 1.7
+// Peaked up steeply, so the head of the sail ends just under the masthead. A
+// flatter gaff leaves a bare pole standing over the rig, which is what the two
+// plain triangles it replaces looked like.
+const GAFF_ANGLE = 0.68
+const GAFF_THROAT = 0.7
 
-function sailGeometry(points: readonly (readonly [number, number])[]) {
+/** The deck edge along the hull: a sheer that dips amidships and lifts towards
+  both ends, most of it at the bow. A straight deck line is the single thing
+  that makes a hull look like a crate. */
+function sheerAt(ship: Ship, x: number): number {
+  const along = x / (ship.hullLength / 2)
+  return ship.hullHeight * (0.88 + 0.24 * along * along - 0.08 * along)
+}
+
+/** How far the hull is drawn in from its full beam at a point along it. */
+function pinch(ship: Ship, x: number): number {
+  const along = x / (ship.hullLength / 2)
+  return 1 - 0.9 * Math.max(0, -along) ** 2.4 - 0.45 * Math.max(0, along) ** 3
+}
+
+function sheerLine(ship: Ship): Point[] {
+  return Array.from({ length: SHEER_SAMPLES + 1 }, (_, step) => {
+    const x = -ship.hullLength / 2 + (ship.hullLength * step) / SHEER_SAMPLES
+    return [x, sheerAt(ship, x)] as Point
+  })
+}
+
+function outline(points: readonly Point[]): Shape {
   const shape = new Shape()
   shape.moveTo(points[0][0], points[0][1])
   for (const [x, y] of points.slice(1)) {
     shape.lineTo(x, y)
   }
   shape.closePath()
-  return new ShapeGeometry(shape)
+  return shape
 }
 
-// Two sails per rigged mast, both in the ship's fore-and-aft plane, which faces
-// the camera: the headsail on the forestay and the main between mast and boom.
-const shipSails = museumShips.map((ship) =>
-  ship.masts.map((mast) => {
-    if (mast.boom <= 0) {
-      return null
-    }
+function hullShape(ship: Ship): Shape {
+  const half = ship.hullLength / 2
 
-    const bow = -ship.hullLength / 2 - mast.at
+  return outline([
+    ...sheerLine(ship),
+    [half - ship.hullLength * 0.05, HULL_FLOOR],
+    [-half + ship.hullLength * 0.22, HULL_FLOOR],
+    // The stem, raked forward on its way up to the bow: the last leg back to
+    // the first point of the sheer closes it.
+    [-half + ship.hullLength * 0.05, ship.hullHeight * 0.3],
+  ])
+}
 
-    return {
-      head: sailGeometry([
-        [0, mast.height],
-        [bow, 0],
-        [0, 0],
-      ]),
-      main: sailGeometry([
-        [0, mast.height],
-        [mast.boom, BOOM_HEIGHT],
-        [0, BOOM_HEIGHT],
-      ]),
-    }
-  }),
-)
+/**
+ * A band following the sheer, for the one light strake along the deck edge. It
+ * stands a little proud of the sheer rather than flush with it: level with the
+ * deck its top face and the hull's would be the same plane, and the two fight
+ * over every pixel of the deck line as the camera drifts.
+ */
+function strakeShape(ship: Ship): Shape {
+  const line = sheerLine(ship).map(([x, y]) => [x, y + RAIL_CAP] as Point)
+  const depth = ship.hullHeight * 0.15 + RAIL_CAP
 
-function MuseumShip({ ship, sails }: { ship: Ship; sails: (typeof shipSails)[number] }) {
-  return (
-    <group position={[ship.x, 0, ship.z]} rotation={[0, ship.heading, 0]}>
-      <mesh position={[0, ship.hullHeight / 2, 0]}>
-        <boxGeometry args={[ship.hullLength, ship.hullHeight, 6]} />
-        <meshLambertMaterial color={fordeColors.hull} />
-      </mesh>
+  return outline([...line, ...line.map(([x, y]) => [x, y - depth] as Point).reverse()])
+}
 
-      {ship.masts.map((mast, index) => {
-        const sail = sails[index]
+/**
+ * Extruding the profile gives a slab of one width, so afterwards every vertex
+ * is drawn towards the centreline by how far it lies from amidships. That is
+ * what turns the slab into a stem forward and a narrowing counter aft.
+ */
+function hullPlating(ship: Ship, shape: Shape, spread: number): BufferGeometry {
+  const geometry = extruded(shape, ship.beam * spread)
+  const position = geometry.attributes.position
 
-        return (
-          <group key={mast.at} position={[mast.at, ship.hullHeight, 0]}>
-            {sail && (
-              <>
-                <mesh geometry={sail.head}>
-                  <meshLambertMaterial color={fordeColors.sail} side={DoubleSide} />
-                </mesh>
-                {/* A shade apart from the headsail, so two overlapping canvases
-                  do not merge into one silhouette. */}
-                <mesh geometry={sail.main}>
-                  <meshLambertMaterial color={fordeColors.sailShaded} side={DoubleSide} />
-                </mesh>
-              </>
-            )}
-            <mesh
-              geometry={mastGeometry}
-              position={[0, mast.height / 2, 0]}
-              scale={[1, mast.height, 1]}
-            >
-              <meshLambertMaterial color={fordeColors.mast} />
-            </mesh>
-            {/* The forestay doubles as the headsail's leading edge. */}
-            <Stay run={-ship.hullLength / 2 - mast.at} height={mast.height} />
+  for (let i = 0; i < position.count; i++) {
+    position.setZ(i, position.getZ(i) * pinch(ship, position.getX(i)))
+  }
 
-            {/* The boom lies just above the deck, where it reads as part of the
-              hull rather than as an arm on a standing pole. */}
-            {mast.boom > 0 && (
-              <mesh
-                geometry={sparGeometry}
-                position={[mast.boom / 2, BOOM_HEIGHT, 0]}
-                rotation={[0, 0, Math.PI / 2]}
-                scale={[1, mast.boom, 1]}
-              >
-                <meshLambertMaterial color={fordeColors.mast} />
-              </mesh>
-            )}
-          </group>
-        )
-      })}
+  geometry.computeVertexNormals()
+  return geometry
+}
 
-      {ship.funnel && (
-        <mesh position={[0, ship.hullHeight + ship.funnel.height / 2, 0]}>
-          <cylinderGeometry
-            args={[ship.funnel.radius, ship.funnel.radius, ship.funnel.height, 12]}
-          />
-          <meshLambertMaterial color={fordeColors.funnel} />
-        </mesh>
-      )}
-    </group>
+/** Points along an edge pushed out to one side, so a sail carries a belly
+  instead of reading as a triangle cut from paper. */
+function bellied(from: Point, to: Point, belly: number): Point[] {
+  const run = [to[0] - from[0], to[1] - from[1]]
+
+  return [0.25, 0.5, 0.75].map((along) => {
+    const swell = belly * Math.sin(Math.PI * along)
+
+    return [
+      from[0] + run[0] * along - run[1] * swell,
+      from[1] + run[1] * along + run[0] * swell,
+    ] as Point
+  })
+}
+
+function sailGeometry(points: readonly Point[], offset: number, color: string): BufferGeometry {
+  return painted(
+    new ShapeGeometry(outline(points)),
+    new Matrix4().makeTranslation(0, 0, offset),
+    color,
   )
 }
+
+function mastHead(ship: Ship, mast: Ship['masts'][number]): Vec3 {
+  return [mast.at, sheerAt(ship, mast.at) + mast.height, 0]
+}
+
+function shipGeometry(ship: Ship): BufferGeometry {
+  const half = ship.hullLength / 2
+  const stem: Vec3 = [-half + 0.4, sheerAt(ship, -half + 0.4), 0]
+  const stern: Vec3 = [half - 0.4, sheerAt(ship, half - 0.4), 0]
+  const sprit: Vec3 = [-half - ship.bowsprit, sheerAt(ship, -half) + 1.2, 0]
+
+  const parts = [
+    painted(hullPlating(ship, hullShape(ship), 1), UNMOVED, fordeColors.hull),
+    painted(hullPlating(ship, strakeShape(ship), 1.03), UNMOVED, fordeColors.hullStrake),
+  ]
+
+  if (ship.deckhouse) {
+    const { at, length, height } = ship.deckhouse
+    const width = ship.beam * 0.52 * pinch(ship, at)
+    const deck = sheerAt(ship, at) - ship.hullHeight * 0.14
+
+    parts.push(
+      painted(
+        unitBox,
+        placed([at, deck + height / 2, 0], [length, height, width]),
+        fordeColors.deckhouse,
+      ),
+      painted(
+        unitBox,
+        placed([at, deck + height, 0], [length * 1.08, 0.3, width * 1.14]),
+        fordeColors.deckhouseRoof,
+      ),
+    )
+  }
+
+  if (ship.bowsprit > 0) {
+    parts.push(
+      rigging(unitMast, [-half + 2, sheerAt(ship, -half + 2), 0], sprit, 0.24, fordeColors.mast),
+      // The bobstay. Without it the bowsprit reads as a stick glued to the bow.
+      rigging(unitLine, sprit, [-half + 0.8, 0.7, 0], 0.07, fordeColors.mast),
+    )
+  }
+
+  ship.masts.forEach((mast, index) => {
+    const deck = sheerAt(ship, mast.at)
+    const head = mastHead(ship, mast)
+    const spread = ship.beam * 0.46 * pinch(ship, mast.at)
+
+    parts.push(
+      rigging(unitMast, [mast.at, deck - ship.hullHeight * 0.5, 0], head, 0.32, fordeColors.mast),
+      // Crosstrees. A bare pole ends in nothing, and this is what gives the
+      // masthead a shape of its own against the sky.
+      painted(
+        unitBox,
+        placed([mast.at, deck + mast.height * 0.78, 0], [0.4, 0.3, spread * 1.6]),
+        fordeColors.mast,
+      ),
+    )
+
+    // Shrouds, the one part of the rig that stands out of the fore-and-aft
+    // plane: they are what keeps the masts from reading as flat cutouts once
+    // the camera has drifted off the fleet's beam.
+    for (const side of [-1, 1]) {
+      for (const along of [-1.2, 1.5]) {
+        const chainplate: Vec3 = [
+          mast.at + along,
+          sheerAt(ship, mast.at + along) - ship.hullHeight * 0.12,
+          side * spread,
+        ]
+        parts.push(rigging(unitLine, head, chainplate, 0.06, fordeColors.mast))
+      }
+    }
+
+    if (index === 0) {
+      parts.push(rigging(unitLine, head, stem, 0.08, fordeColors.mast))
+
+      if (ship.bowsprit > 0) {
+        parts.push(rigging(unitLine, head, sprit, 0.07, fordeColors.mast))
+      }
+    } else {
+      // Forward to the mast ahead rather than all the way to the stem, which
+      // would draw a line straight through the rig in front of it.
+      parts.push(
+        rigging(unitLine, head, mastHead(ship, ship.masts[index - 1]), 0.07, fordeColors.mast),
+      )
+    }
+
+    if (index === ship.masts.length - 1) {
+      parts.push(rigging(unitLine, head, stern, 0.07, fordeColors.mast))
+    }
+
+    if (mast.boom <= 0) {
+      return
+    }
+
+    const tack: Point = [mast.at, deck + BOOM_HEIGHT]
+    const clew: Point = [mast.at + mast.boom, deck + BOOM_HEIGHT + 0.6]
+
+    parts.push(rigging(unitLine, [...tack, 0], [...clew, 0], 0.16, fordeColors.mast))
+
+    if (mast.gaff) {
+      const throat: Point = [mast.at, deck + mast.height * GAFF_THROAT]
+      const peak: Point = [
+        mast.at + mast.gaff * Math.cos(GAFF_ANGLE),
+        throat[1] + mast.gaff * Math.sin(GAFF_ANGLE),
+      ]
+
+      parts.push(
+        rigging(unitLine, [...throat, 0], [...peak, 0], 0.14, fordeColors.mast),
+        // The peak halyard, which is what holds the gaff up at that angle.
+        rigging(unitLine, head, [...peak, 0], 0.05, fordeColors.mast),
+        sailGeometry(
+          [throat, peak, ...bellied(peak, clew, 0.07), clew, tack],
+          -0.05,
+          fordeColors.sail,
+        ),
+      )
+    }
+
+    // The staysail on the forestay, and ahead of it the jib out on the
+    // bowsprit. Each takes the shade the sail beside it does not, or two
+    // canvases that overlap merge into one silhouette.
+    const stayHead: Point = [mast.at, deck + mast.height]
+    const stayClew: Point = [mast.at - 0.5, deck + 1]
+
+    parts.push(
+      sailGeometry(
+        [stayHead, [stem[0], stem[1]], ...bellied([stem[0], stem[1]], stayClew, -0.05), stayClew],
+        0,
+        fordeColors.sailShaded,
+      ),
+    )
+
+    if (ship.bowsprit > 0) {
+      const jibHead: Point = [mast.at, deck + mast.height * 0.92]
+      const jibTack: Point = [sprit[0], sprit[1]]
+      const jibClew: Point = [
+        jibHead[0] + (stem[0] - jibHead[0]) * 0.7,
+        jibHead[1] + (stem[1] - jibHead[1]) * 0.7,
+      ]
+
+      parts.push(
+        sailGeometry(
+          [jibHead, jibTack, ...bellied(jibTack, jibClew, -0.05), jibClew],
+          0.1,
+          fordeColors.sail,
+        ),
+      )
+    }
+  })
+
+  const tallest = ship.masts.reduce((best, mast) => (mast.height > best.height ? mast : best))
+  const truck = mastHead(ship, tallest)
+
+  parts.push(
+    sailGeometry(
+      [
+        [truck[0], truck[1]],
+        [truck[0] + 2.2, truck[1] - 0.5],
+        [truck[0] + 0.15, truck[1] - 1.1],
+      ],
+      0,
+      fordeColors.funnel,
+    ),
+  )
+
+  if (ship.funnel) {
+    const deck = sheerAt(ship, 0)
+
+    parts.push(
+      painted(
+        unitFunnel,
+        placed(
+          [0, deck + ship.funnel.height / 2, 0],
+          [ship.funnel.radius, ship.funnel.height, ship.funnel.radius],
+        ),
+        fordeColors.funnel,
+      ),
+      painted(
+        unitFunnel,
+        // Kept clear of the funnel's own top, which it would otherwise cap with
+        // a second disc in the same plane.
+        placed(
+          [0, deck + ship.funnel.height - 0.9, 0],
+          [ship.funnel.radius * 1.1, 1.2, ship.funnel.radius * 1.1],
+        ),
+        fordeColors.hull,
+      ),
+    )
+  }
+
+  return merged(parts)
+}
+
+const shipGeometries = museumShips.map(shipGeometry)
 
 // A street tree is ten parts, and there are twenty-one of them on screen for
 // the whole opening. Merging each tree into one geometry with its tone baked
@@ -705,7 +924,14 @@ function FordeModel({ active }: { active: boolean }) {
 
       <HarbourFront />
       {museumShips.map((ship, index) => (
-        <MuseumShip key={ship.x} ship={ship} sails={shipSails[index]} />
+        <mesh
+          key={ship.x}
+          geometry={shipGeometries[index]}
+          position={[ship.x, 0, ship.z]}
+          rotation={[0, ship.heading, 0]}
+        >
+          <meshLambertMaterial vertexColors flatShading side={DoubleSide} />
+        </mesh>
       ))}
 
       {/* The promenade runs from behind the avenue all the way past the camera,

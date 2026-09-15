@@ -139,19 +139,22 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
           case a white logo lands on a still-white background. Two stacked
           images crossfading on the same clock keep the logo in step with it. */}
       <div
-        className="showcase-act-fade absolute top-10 left-24 h-10 transition-opacity duration-[1200ms]"
+        className="showcase-act-fade absolute top-10 left-24 transition-opacity duration-[1200ms]"
         style={chromeFade('logo')}
       >
+        {/* The colour mark stays in flow and gives the box its width. Stacking
+            both absolutely collapses the box to nothing, and preflight's
+            max-width: 100% then takes the artwork down with it. */}
         <img
           src={logoColor.src}
           alt=""
-          className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
+          className="showcase-act-fade block h-10 w-auto transition-opacity duration-[1200ms]"
           style={{ opacity: onDarkPlate ? 0 : 1 }}
         />
         <img
           src={logoWhite.src}
           alt=""
-          className="showcase-act-fade absolute top-0 left-0 h-10 transition-opacity duration-[1200ms]"
+          className="showcase-act-fade absolute top-0 left-0 h-10 w-auto transition-opacity duration-[1200ms]"
           style={{ opacity: onDarkPlate ? 1 : 0 }}
         />
       </div>

@@ -52,7 +52,7 @@ export default function ShowcaseLoop({ strings }: Props) {
           className="absolute inset-0 transition-colors duration-[1200ms]"
           style={{ backgroundColor: ACT_BACKGROUND[current.scene.act] }}
         />
-        <div className="absolute inset-y-0 right-0 w-[63%]">
+        <div className="absolute inset-y-0 right-0 w-[65.5%]">
           <ShowcaseTour active={current.scene.visual.kind === 'tour'} />
         </div>
         <div className="absolute inset-0">

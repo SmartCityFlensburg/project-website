@@ -15,7 +15,11 @@ export default function ExhibitScene({ scene, dark, children }: Props) {
   const source = optionalText(t(`scenes.${scene.id}.source`))
 
   return (
-    <div className="grid h-full w-full grid-cols-[1.9fr_1fr] items-center">
+    <div
+      className={`grid h-full w-full items-center ${
+        visualFirst ? 'grid-cols-[1.9fr_1fr]' : 'grid-cols-[1fr_1.9fr]'
+      }`}
+    >
       <div className={`h-full w-full overflow-hidden ${visualFirst ? 'order-1' : 'order-2'}`}>
         {children}
       </div>

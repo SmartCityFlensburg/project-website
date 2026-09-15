@@ -11,7 +11,7 @@ export default function ShowcaseTour({ active }: { active: boolean }) {
 
   return (
     <div
-      className="h-full w-full transition-opacity duration-500"
+      className="showcase-tour-fade h-full w-full transition-opacity duration-500"
       style={{ opacity: active ? 1 : 0 }}
       aria-hidden={!active}
     >

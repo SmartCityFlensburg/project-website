@@ -5,6 +5,8 @@ import {
   cloudX,
   clouds,
   farShore,
+  glint,
+  glintOf,
   quay,
   quayHouses,
   scene,
@@ -12,8 +14,11 @@ import {
   limbTip,
   sensor,
   signalProgress,
+  shallowness,
   swayAngle,
   waveHeight,
+  waveSurface,
+  waves,
   wind,
   water,
   quayTrees,
@@ -72,6 +77,91 @@ describe('waveHeight', () => {
 
   test('varies across the surface at a single moment', () => {
     expect(waveHeight(0, 0, 3)).not.toBeCloseTo(waveHeight(37, -60, 3), 4)
+  })
+
+  // The amplitude bound above only holds because the shares add up to the
+  // whole: a set that sums past one lets a crest climb over the promenade.
+  test('shares the amplitude out between the waves without remainder', () => {
+    const total = waves.reduce((sum, wave) => sum + wave.weight, 0)
+    expect(total).toBeCloseTo(1, 6)
+  })
+
+  // A cell wider than half a wavelength cannot show that wave: the mesh
+  // samples it as a slow shimmer instead of as chop.
+  test('is resolved by the water mesh down to the shortest chop', () => {
+    const shortest = Math.min(...waves.map((wave) => wave.length))
+
+    expect(water.width / water.segmentsX).toBeLessThan(shortest / 2)
+    expect(water.depth / water.segmentsZ).toBeLessThan(shortest / 2)
+  })
+})
+
+describe('waveSurface', () => {
+  const surface = { height: 0, tiltX: 0, tiltZ: 0 }
+
+  // The shader glints off the analytic slope, so it has to be the slope of
+  // the height the same shader displaces by.
+  test('reports the slope the height actually has', () => {
+    const step = 0.001
+
+    for (const [x, z, t] of [
+      [12, -80, 1.5],
+      [-90, -160, 7.2],
+      [200, -30, 12.9],
+    ]) {
+      waveSurface(x, z, t, surface)
+      const alongX = (waveHeight(x + step, z, t) - waveHeight(x - step, z, t)) / (2 * step)
+      const alongZ = (waveHeight(x, z + step, t) - waveHeight(x, z - step, t)) / (2 * step)
+
+      expect(surface.tiltX).toBeCloseTo(alongX, 4)
+      expect(surface.tiltZ).toBeCloseTo(alongZ, 4)
+    }
+  })
+})
+
+describe('glintOf', () => {
+  test('leaves a level surface dark', () => {
+    expect(glintOf({ height: 0, tiltX: 0, tiltZ: 0 })).toBe(0)
+  })
+
+  test('lights a facet leaning toward the sun and not one leaning away', () => {
+    const lean = glint.to
+    expect(glintOf({ height: 0, tiltX: -lean * glint.towardX, tiltZ: -lean * glint.towardZ })).toBe(
+      1,
+    )
+    expect(glintOf({ height: 0, tiltX: lean * glint.towardX, tiltZ: lean * glint.towardZ })).toBe(0)
+  })
+
+  // A chop that never leans far enough would leave the whole Förde matt.
+  test('is reached somewhere on the surface', () => {
+    const surface = { height: 0, tiltX: 0, tiltZ: 0 }
+    let brightest = 0
+
+    for (let x = -100; x <= 100; x += 1.7) {
+      for (let z = -180; z <= -30; z += 1.3) {
+        brightest = Math.max(brightest, glintOf(waveSurface(x, z, 4, surface)))
+      }
+    }
+
+    expect(brightest).toBeGreaterThan(0.9)
+  })
+})
+
+describe('shallowness', () => {
+  const quayWall = quay.centerZ - quay.depth / 2
+  const shoreWall = farShore.centerZ + farShore.depth / 2
+
+  test('is full against either wall and gone in the middle of the Förde', () => {
+    expect(shallowness(quayWall)).toBeCloseTo(1, 6)
+    expect(shallowness(shoreWall)).toBeCloseTo(1, 6)
+    expect(shallowness((quayWall + shoreWall) / 2)).toBe(0)
+  })
+
+  test('fades out within the shallows', () => {
+    const half = shallowness(quayWall - water.shallows / 2)
+    expect(half).toBeGreaterThan(0)
+    expect(half).toBeLessThan(1)
+    expect(shallowness(quayWall - water.shallows)).toBe(0)
   })
 })
 

@@ -14,11 +14,14 @@ import {
   RingGeometry,
   Shape,
   ShapeGeometry,
+  Vector2,
   Vector3,
+  Vector4,
   type BufferGeometry,
   type Group,
   type Mesh,
   type MeshBasicMaterial,
+  type MeshLambertMaterial,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {
@@ -28,6 +31,7 @@ import {
   clouds,
   farShore,
   fordeColors,
+  glint,
   houseTones,
   HOUSE_PLINTH,
   museumShips,
@@ -37,6 +41,7 @@ import {
   roofTones,
   scene as fordeScene,
   sensor,
+  shallowness,
   signalProgress,
   spires,
   swayAngle,
@@ -44,6 +49,7 @@ import {
   treePit,
   water,
   waveHeight,
+  waves,
   type HarbourHouse,
   type QuayTree,
   type Ship,
@@ -51,58 +57,191 @@ import {
   type Vec3,
 } from '../../../data/showcaseForde'
 
-// Built in the xz plane straight away, so a wave only has to move a vertex's y.
+// Painted once: the still colour is deep out in the Förde and greener over the
+// shallows along either wall, and the geometry is placed in world z so the
+// shader can take a vertex's position as it is.
 const waterGeometry = (() => {
   const geometry = new PlaneGeometry(water.width, water.depth, water.segmentsX, water.segmentsZ)
   geometry.rotateX(-Math.PI / 2)
-  geometry.setAttribute(
-    'color',
-    new BufferAttribute(new Float32Array(geometry.attributes.position.count * 3), 3),
-  )
+  geometry.translate(0, 0, water.centerZ)
+
+  const position = geometry.attributes.position
+  const still = new Float32Array(position.count * 3)
+  const deep = new Color(fordeColors.waterDeep)
+  const shallow = new Color(fordeColors.waterShallow)
+  const tint = new Color()
+
+  for (let i = 0; i < position.count; i++) {
+    tint.copy(deep).lerp(shallow, shallowness(position.getZ(i)))
+    still[i * 3] = tint.r
+    still[i * 3 + 1] = tint.g
+    still[i * 3 + 2] = tint.b
+  }
+
+  geometry.setAttribute('color', new BufferAttribute(still, 3))
   return geometry
 })()
 
-const waterRest = Float32Array.from(waterGeometry.attributes.position.array)
+// The waves run on the gpu. Twenty thousand vertices through five sines a
+// frame took the whole frame budget on the cpu and left the camera drift
+// stuttering; in the vertex shader they cost nothing anyone can measure.
+// The terms come from the same `waves` table the tests and the wash bands
+// use, so there is one description of the Förde, not two.
+const waterUniforms = {
+  uTime: { value: 0 },
+  uAmplitude: { value: water.amplitude },
+  uWaves: {
+    value: waves.map(
+      (wave) =>
+        new Vector4(
+          wave.weight * water.amplitude,
+          (Math.PI * 2) / wave.length,
+          wave.speed,
+          wave.direction,
+        ),
+    ),
+  },
+  uCrest: { value: new Color(fordeColors.waterCrest) },
+  uGlint: { value: new Color(fordeColors.waterGlint) },
+  uGlintToward: { value: new Vector2(glint.towardX, glint.towardZ) },
+  uGlintRange: { value: new Vector2(glint.from, glint.to) },
+}
 
-const deepWater = new Color(fordeColors.waterDeep)
-const crestWater = new Color(fordeColors.waterCrest)
-const crestTint = new Color()
+const waterVertexHeader = /* glsl */ `
+uniform float uTime;
+uniform float uAmplitude;
+uniform vec4 uWaves[${waves.length}];
+uniform vec3 uCrest;
+uniform vec3 uGlint;
+uniform vec2 uGlintToward;
+uniform vec2 uGlintRange;
+
+float waveHeight;
+vec2 waveTilt;
+
+// Mirrors waveSurface: each term is (weight in metres, frequency, speed, direction).
+void surfaceAt(vec2 at) {
+  waveHeight = 0.0;
+  waveTilt = vec2(0.0);
+
+  for (int i = 0; i < ${waves.length}; i++) {
+    vec4 wave = uWaves[i];
+    vec2 along = vec2(cos(wave.w), sin(wave.w));
+    float phase = dot(at, along) * wave.y + uTime * wave.z;
+    waveHeight += wave.x * sin(phase);
+    waveTilt += wave.x * cos(phase) * wave.y * along;
+  }
+}
+`
+
+// Only the tips catch the light. Tinting across the whole wave, troughs
+// included, averages the surface to the midpoint and the water reads as a
+// pale field instead of as water. The glint is the facets leaning toward
+// the sun and the camera at once, see `glint` in the data.
+const waterVertexColor = /* glsl */ `
+#include <color_vertex>
+surfaceAt(position.xz);
+float crest = max(0.0, waveHeight / uAmplitude);
+float lean = -dot(waveTilt, uGlintToward);
+float glint = smoothstep(uGlintRange.x, uGlintRange.y, lean);
+vColor.rgb = mix(vColor.rgb, uCrest, crest * crest * 0.45);
+vColor.rgb = mix(vColor.rgb, uGlint, glint * 0.75);
+`
+
+const waterVertexDisplace = /* glsl */ `
+#include <begin_vertex>
+transformed.y += waveHeight;
+`
+
+const rideTheWaves: MeshLambertMaterial['onBeforeCompile'] = (shader) => {
+  Object.assign(shader.uniforms, waterUniforms)
+  shader.vertexShader = shader.vertexShader
+    .replace('void main() {', `${waterVertexHeader}\nvoid main() {`)
+    .replace('#include <color_vertex>', waterVertexColor)
+    .replace('#include <begin_vertex>', waterVertexDisplace)
+}
 
 function Water() {
-  const mesh = useRef<Mesh>(null)
-
   useFrame(({ clock }) => {
-    if (!mesh.current) {
-      return
-    }
+    waterUniforms.uTime.value = clock.getElapsedTime()
+  })
 
+  // Flat shading takes its normals from screen derivatives in the fragment
+  // shader, so the displaced surface lights its facets without any normals
+  // being recomputed.
+  return (
+    <mesh geometry={waterGeometry}>
+      <meshLambertMaterial vertexColors flatShading onBeforeCompile={rideTheWaves} />
+    </mesh>
+  )
+}
+
+const WASH_SEGMENTS = 140
+const WASH_LIFT = 0.06
+
+// Kept outside react like the water's own geometry: the bands are written to
+// every frame, which the compiler will not allow on a memoised value.
+const washGeometries = new Map<string, PlaneGeometry>()
+
+function washGeometry(width: number, reach: number): PlaneGeometry {
+  const key = `${width}:${reach}`
+  let plane = washGeometries.get(key)
+
+  if (!plane) {
+    plane = new PlaneGeometry(width, reach, WASH_SEGMENTS, 1)
+    plane.rotateX(-Math.PI / 2)
+    washGeometries.set(key, plane)
+  }
+
+  return plane
+}
+
+/**
+ * A pale band riding the surface out from the far shore's wall, wide at a
+ * crest and narrow in a trough. Two of them stacked, a bright narrow one
+ * inside a faint wide one, stand in for a soft edge on a material that has no
+ * per-vertex opacity. The near quay gets none: from the camera its own wall
+ * hides the first fifteen metres of water behind it.
+ */
+function WashBand({ wall, reach, opacity }: { wall: number; reach: number; opacity: number }) {
+  useFrame(({ clock }) => {
     const seconds = clock.getElapsedTime()
-    const position = waterGeometry.attributes.position
-    const color = waterGeometry.attributes.color
+    const position = washGeometry(farShore.width, reach).attributes.position
 
     for (let i = 0; i < position.count; i++) {
-      const x = waterRest[i * 3]
-      const z = waterRest[i * 3 + 2]
-      const height = waveHeight(x, z + water.centerZ, seconds)
+      const x = position.getX(i)
+      // The plane's rows sit at ±reach/2; the row toward the wall is pinned
+      // to it and the other breathes with the swell it is riding on.
+      const outer = i >= position.count / 2 ? 1 : 0
+      const crest = Math.max(0, waveHeight(x, wall, seconds) / water.amplitude)
+      const z = outer * reach * (0.55 + 0.45 * crest)
 
-      position.setY(i, height)
-      // Only the tips catch the light. Tinting across the whole wave, troughs
-      // included, averages the surface to the midpoint and the water reads as
-      // a pale field instead of as water.
-      const crest = Math.max(0, height / water.amplitude)
-      crestTint.copy(deepWater).lerp(crestWater, crest * crest * 0.55)
-      color.setXYZ(i, crestTint.r, crestTint.g, crestTint.b)
+      position.setY(i, waveHeight(x, wall + z, seconds) + WASH_LIFT)
+      position.setZ(i, z)
     }
 
     position.needsUpdate = true
-    color.needsUpdate = true
-    waterGeometry.computeVertexNormals()
   })
 
   return (
-    <mesh ref={mesh} geometry={waterGeometry} position={[0, 0, water.centerZ]}>
-      <meshLambertMaterial vertexColors flatShading />
+    <mesh geometry={washGeometry(farShore.width, reach)} position={[0, 0, wall]} renderOrder={1}>
+      <meshBasicMaterial
+        color={fordeColors.waterWash}
+        transparent
+        opacity={opacity}
+        depthWrite={false}
+        side={DoubleSide}
+      />
     </mesh>
+  )
+}
+
+function Wash({ wall }: { wall: number }) {
+  return (
+    <>
+      <WashBand wall={wall} reach={water.wash} opacity={0.28} />
+      <WashBand wall={wall} reach={water.wash * 0.45} opacity={0.6} />
+    </>
   )
 }
 
@@ -1399,6 +1538,7 @@ function FordeModel({ shown }: { shown: boolean }) {
         <boxGeometry args={[farShore.width, 2.4, 1.8]} />
         <meshLambertMaterial color={fordeColors.shoreEdge} />
       </mesh>
+      <Wash wall={farShore.centerZ + farShore.depth / 2 + 0.06} />
 
       <HarbourFront />
       {museumShips.map((ship, index) => (

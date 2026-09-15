@@ -29,10 +29,39 @@ export const water = {
   width: 560,
   depth: 420,
   centerZ: -150,
-  segmentsX: 56,
-  segmentsZ: 30,
+  // Fine enough to resolve the chop: a cell has to stay under half the
+  // shortest wavelength, or the short waves alias into a slow shimmer.
+  segmentsX: 210,
+  segmentsZ: 150,
   amplitude: 0.7,
+  /** How far the shallows' lighter tint reaches out from either bank. */
+  shallows: 26,
+  /** How far the wash along a wall reaches out onto the water. */
+  wash: 1.6,
 } as const
+
+export interface Wave {
+  /** Share of water.amplitude. The weights sum to one, so the crests stay inside it. */
+  readonly weight: number
+  /** Crest to crest, in metres. */
+  readonly length: number
+  /** Which way the crests travel, in radians from +x toward +z. */
+  readonly direction: number
+  /** Phase speed in radians per second. */
+  readonly speed: number
+}
+
+// One long swell coming up the Förde, two mid waves crossing it and three
+// short chops on top. The chop is what catches the low sun as facets; three
+// of them at odd angles, or the glints line up along one set of crests.
+export const waves: readonly Wave[] = [
+  { weight: 0.32, length: 96, direction: 0.4, speed: 0.5 },
+  { weight: 0.13, length: 105, direction: Math.PI / 2, speed: 0.9 },
+  { weight: 0.13, length: 140, direction: 0, speed: -0.6 },
+  { weight: 0.16, length: 14, direction: 1.1, speed: 1.7 },
+  { weight: 0.14, length: 10, direction: -0.55, speed: 2.1 },
+  { weight: 0.12, length: 7.5, direction: 0.9, speed: 2.6 },
+]
 
 export const wind = {
   amplitude: 0.055,
@@ -59,11 +88,80 @@ export function swayAngle(phase: number, seconds: number): number {
   return wind.amplitude * (0.75 * base + 0.25 * gust)
 }
 
-/** Surface displacement of the Förde. Crossed waves, so the facets never align. */
+const waveTerms = waves.map((wave) => ({
+  weight: wave.weight * water.amplitude,
+  frequency: TAU / wave.length,
+  speed: wave.speed,
+  alongX: Math.cos(wave.direction),
+  alongZ: Math.sin(wave.direction),
+}))
+
+export interface Surface {
+  height: number
+  /** Rise of the surface per metre along x and along z. */
+  tiltX: number
+  tiltZ: number
+}
+
+/**
+ * The Förde at one point: its displacement and its slope. Crossed waves, so the
+ * facets never align. The water mesh runs the same sum in its vertex shader;
+ * this is the reference for it, for the tests and for the wash bands.
+ */
+export function waveSurface(x: number, z: number, seconds: number, out: Surface): Surface {
+  let height = 0
+  let tiltX = 0
+  let tiltZ = 0
+
+  for (const term of waveTerms) {
+    const phase = (x * term.alongX + z * term.alongZ) * term.frequency + seconds * term.speed
+    const rise = term.weight * Math.cos(phase) * term.frequency
+
+    height += term.weight * Math.sin(phase)
+    tiltX += rise * term.alongX
+    tiltZ += rise * term.alongZ
+  }
+
+  out.height = height
+  out.tiltX = tiltX
+  out.tiltZ = tiltZ
+  return out
+}
+
+const surfaceScratch: Surface = { height: 0, tiltX: 0, tiltZ: 0 }
+
+/** Surface displacement of the Förde. */
 export function waveHeight(x: number, z: number, seconds: number): number {
-  const along = Math.sin(x * 0.06 + seconds * 0.9)
-  const across = Math.sin(z * 0.045 - seconds * 0.6)
-  return (water.amplitude / 2) * (along + across)
+  return waveSurface(x, z, seconds, surfaceScratch).height
+}
+
+// The glint is painted into the vertex colours rather than left to a specular
+// term. With the sun off to starboard and the camera looking down the Förde,
+// no facet ever mirrors the one into the other, so a real highlight stays dark.
+export const glint = {
+  /** Which way a facet has to lean to catch the light, as a direction in xz. */
+  towardX: 0.8,
+  towardZ: 0.6,
+  /** The lean, in metres per metre, at which a facet starts to glint and at which it is fully lit. */
+  from: 0.07,
+  to: 0.13,
+} as const
+
+/** How brightly a piece of surface throws the light back, from zero to one. */
+export function glintOf(surface: Surface): number {
+  const lean = -(surface.tiltX * glint.towardX + surface.tiltZ * glint.towardZ)
+  return smoothstep(clamp01((lean - glint.from) / (glint.to - glint.from)))
+}
+
+/**
+ * How much of the shallows' tint a point of the surface carries, from none in
+ * the middle of the Förde to all of it against either wall.
+ */
+export function shallowness(z: number): number {
+  const fromQuay = quay.centerZ - quay.depth / 2 - z
+  const fromShore = z - (farShore.centerZ + farShore.depth / 2)
+  const nearest = Math.min(fromQuay, fromShore)
+  return 1 - smoothstep(clamp01(nearest / water.shallows))
 }
 
 export interface CameraFrame {
@@ -819,7 +917,14 @@ export const fordeColors = {
   skyMid: '#AECDDE',
   skyLow: '#EDF1EA',
   waterDeep: '#2B5F73',
+  // Over the shallows along either bank. Greener than the deep, the way the
+  // Förde reads where the bottom comes up under the quay walls.
+  waterShallow: '#3E7F84',
   waterCrest: '#A8CBD4',
+  // The glint the low sun leaves on the facets that face it.
+  waterGlint: '#9FB6BE',
+  // The wash along the walls. Off-white, not white: foam under a grey sky.
+  waterWash: '#D9E6E6',
   cloud: '#F8FBFA',
   cloudShade: '#C6D9E4',
   quay: '#BDBBAB',

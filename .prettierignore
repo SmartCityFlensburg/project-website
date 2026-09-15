@@ -5,3 +5,4 @@ src/json/*Animation.json
 pnpm-lock.yaml
 CHANGELOG.md
 docs/superpowers/**
+.superpowers/

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import LottiePlayer from '../LottiePlayer'
 import cableAnimation from '../../../json/cableAnimation.json'
 import { showcaseClipBaseUrl } from '../../../lib/runtimeEnv'
+import { panOver } from '../../../lib/showcase/delay'
 import type { PanVariant, Visual } from '../../../data/showcase'
 
 const LOTTIE = {
@@ -57,7 +58,7 @@ function PannedImage({
           ? 'showcase-pan-contain h-full w-full object-contain'
           : `${PAN_CLASS[pan]} h-full w-full object-cover`
       }
-      style={{ animationDuration: `${seconds}s` }}
+      style={panOver(seconds)}
     />
   )
 }

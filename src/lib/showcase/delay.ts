@@ -26,3 +26,17 @@ export function delay(ms: number): CSSProperties {
 export function outroAt(ms: number): CSSProperties {
   return { '--showcase-outro-at': `${ms}ms` } as CSSProperties
 }
+
+/**
+ * How long a full-bleed picture's drift takes — the scene it runs under, so the
+ * move ends exactly when the picture hands over.
+ *
+ * Through a custom property for the same reason as the stagger above: an
+ * important `animation` shorthand that names no duration declares an important
+ * `animation-duration: 0s`, which beats `style={{ animationDuration }}`. Set
+ * that way the pans jumped straight to their end frame and the photographs
+ * stood still.
+ */
+export function panOver(seconds: number): CSSProperties {
+  return { '--showcase-pan-duration': `${seconds}s` } as CSSProperties
+}

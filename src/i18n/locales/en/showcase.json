@@ -32,7 +32,7 @@
     "sensor": {
       "eyebrow": "01 · Measure",
       "statement": "The soil says when to water.",
-      "body": "Soil moisture, temperature and water tension at three depths, measured at 30, 60 and 90 centimetres."
+      "body": "Capacitive sensors measure soil moisture and temperature at two depths, 40 and 80 centimetres."
     },
     "lorawan": {
       "statement": "Energy-efficient over LoRaWAN",

@@ -32,7 +32,7 @@
     "sensor": {
       "eyebrow": "01 · Messen",
       "statement": "Der Boden sagt, wann gegossen wird.",
-      "body": "Bodenfeuchte, Temperatur und Bodenwasserspannung in drei Tiefen, gemessen in 30, 60 und 90 Zentimetern."
+      "body": "Kapazitive Sensoren messen Bodenfeuchte und Temperatur in zwei Tiefen, in 40 und 80 Zentimetern."
     },
     "lorawan": {
       "statement": "Energieeffizient über LoRaWAN",

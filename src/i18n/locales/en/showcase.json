@@ -27,7 +27,7 @@
       "source": "Source: TBZ Flensburg"
     },
     "sensor": {
-      "eyebrow": "01 · Capture",
+      "eyebrow": "01 · Measure",
       "statement": "The soil says when to water.",
       "body": "Soil moisture, temperature and water tension at three depths, measured at 30, 60 and 90 centimetres."
     },
@@ -37,7 +37,7 @@
       "source": "3+ years of battery life"
     },
     "map": {
-      "eyebrow": "02 · Analyse",
+      "eyebrow": "02 · Understand",
       "statement": "One look at the map is enough.",
       "body": "A traffic light system shows which green spaces need water."
     },
@@ -46,7 +46,7 @@
       "body": "Real readings from the soil, from ten sites in Flensburg since May 2026."
     },
     "planning": {
-      "eyebrow": "03 · Execute",
+      "eyebrow": "03 · Act",
       "statement": "Put an operation together",
       "body": "Combine vehicles, teams and tree groups into one watering plan."
     },

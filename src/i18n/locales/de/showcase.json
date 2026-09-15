@@ -27,7 +27,7 @@
       "source": "Quelle: TBZ Flensburg"
     },
     "sensor": {
-      "eyebrow": "01 · Erfassen",
+      "eyebrow": "01 · Messen",
       "statement": "Der Boden sagt, wann gegossen wird.",
       "body": "Bodenfeuchte, Temperatur und Bodenwasserspannung in drei Tiefen, gemessen in 30, 60 und 90 Zentimetern."
     },
@@ -37,7 +37,7 @@
       "source": "3+ Jahre Batterielaufzeit"
     },
     "map": {
-      "eyebrow": "02 · Analysieren",
+      "eyebrow": "02 · Verstehen",
       "statement": "Ein Blick auf die Karte genügt.",
       "body": "Ein Ampelsystem zeigt, welche Grünflächen Wasser brauchen."
     },
@@ -46,7 +46,7 @@
       "body": "Echte Messwerte aus dem Boden, seit Mai 2026 an zehn Standorten in Flensburg."
     },
     "planning": {
-      "eyebrow": "03 · Ausführen",
+      "eyebrow": "03 · Handeln",
       "statement": "Einsätze zusammenstellen",
       "body": "Fahrzeuge, Teams und Gruppen zu einem Einsatzplan verbinden."
     },

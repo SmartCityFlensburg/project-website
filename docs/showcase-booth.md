@@ -10,15 +10,13 @@ lokalen Build, damit ein Ausfall des Messe-WLAN sie nicht trifft.
 3. `pnpm showcase:build` erzeugt `dist/`. Nicht `pnpm build`: nur dieser
    Befehl stellt die Videoquelle auf den eigenen Ursprung um, sonst sucht die
    Tafel die Clips am Stand im Internet.
-4. `dist/`, `scripts/showcase-kiosk.sh` und `node_modules/` auf den
-   Standrechner kopieren (oder dort per `pnpm install` mit Netz einmal
-   auffrischen). `node_modules/` wird gebraucht, damit `npx serve` die im
-   Projekt gepinnte Version findet, statt sie am Stand aus dem Internet zu
-   laden, siehe Warnung unten.
+4. `dist/`, `scripts/showcase-kiosk.sh` und `scripts/showcase-server.mjs` auf
+   den Standrechner kopieren. Mehr wird nicht gebraucht: der Server ist ein
+   eigenes Skript ohne Abhängigkeiten, kein `node_modules/` nötig.
 5. Einmal Probe fahren: Netzwerk am Standrechner trennen und
    `pnpm showcase:kiosk` aus dem Stand starten (nicht nur währenddessen
-   trennen). Nur ein echter Kaltstart ohne Netz zeigt, ob `npx serve` wirklich
-   lokal auflöst.
+   trennen). Nur ein echter Kaltstart ohne Netz zeigt, ob am Ende auch wirklich
+   nichts aus dem Internet nachgeladen wird.
 
 ## Am Stand
 
@@ -26,9 +24,10 @@ lokalen Build, damit ein Ausfall des Messe-WLAN sie nicht trifft.
 pnpm showcase:kiosk
 ```
 
-Das Skript schaltet den Bildschirmschoner ab, serviert `dist/` lokal, startet
-Chromium im Vollbild und startet ihn neu, falls er abstürzt. Beenden mit
-Strg+C.
+Das Skript schaltet den Bildschirmschoner ab, startet `scripts/showcase-server.mjs`
+als lokalen Server, prüft, dass er tatsächlich antwortet, und startet dann
+Chromium im Vollbild. Stirbt der Server oder Chromium während der Messe, wird
+jeweils neu gestartet, ohne dass jemand eingreifen muss. Beenden mit Strg+C.
 
 ## Die Screencasts
 
@@ -44,15 +43,3 @@ mit langsamer und bewusster Mausführung.
 
 Fehlt ein Clip, zeigt die Tafel an seiner Stelle den passenden Screenshot mit
 langsamer Fahrt. Sie ist also auch ohne Aufnahmen vollständig vorführbar.
-
-## Warnung: `npx serve` und das fehlende Netz
-
-`scripts/showcase-kiosk.sh` startet den lokalen Server mit `npx serve`.
-`serve` ist als gepinnte Dev-Abhängigkeit in `package.json` eingetragen, damit
-`npx` die Version aus `node_modules/.bin` findet und sie nicht erst aus dem
-Netz lädt. Das greift aber nur, wenn `node_modules/` tatsächlich mit auf den
-Standrechner kommt oder dort vorher per `pnpm install` installiert wurde.
-Wird nur `dist/` und das Kiosk-Skript kopiert, ohne `node_modules/`, versucht
-`npx` am Stand ins Internet zu greifen und schlägt dort ohne Netz fehl. Vor
-der Messe deshalb immer den Kaltstart-Test aus Schritt 5 durchführen, mit
-tatsächlich getrenntem Netz, nicht erst nach dem Start.

@@ -14,7 +14,15 @@ await mkdir(target, { recursive: true })
 let missing = 0
 
 for (const clip of CLIPS) {
-  const response = await fetch(`${BASE}/${clip}`)
+  let response
+
+  try {
+    response = await fetch(`${BASE}/${clip}`)
+  } catch (error) {
+    console.warn(`fehlt im Bucket, wird übersprungen: ${clip} (${error.message})`)
+    missing += 1
+    continue
+  }
 
   if (!response.ok) {
     console.warn(`fehlt im Bucket, wird übersprungen: ${clip} (${response.status})`)

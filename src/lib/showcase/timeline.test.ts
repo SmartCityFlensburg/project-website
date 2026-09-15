@@ -4,11 +4,12 @@ import {
   buildTimeline,
   inLastMs,
   leavingOf,
-  loopProgress,
   msIntoScene,
   previousOf,
   sceneAt,
+  stepProgress,
   stepStops,
+  stepWindow,
   totalDurationMs,
 } from './timeline'
 
@@ -58,31 +59,54 @@ describe('sceneAt', () => {
   })
 })
 
-describe('loopProgress', () => {
-  it('läuft von null bis knapp unter eins', () => {
-    expect(loopProgress(showcaseScenes, 0)).toBe(0)
-    expect(loopProgress(showcaseScenes, 91_000)).toBeCloseTo(0.5, 5)
-    expect(loopProgress(showcaseScenes, 182_000)).toBe(0)
+describe('stepWindow', () => {
+  it('spannt von der ersten bis zur letzten Szene mit Schritt', () => {
+    // sensor eröffnet messen bei 46_000, tour beschließt handeln bei 128_000.
+    expect(stepWindow(showcaseScenes)).toEqual({ startMs: 46_000, endMs: 128_000 })
+  })
+})
+
+describe('stepProgress', () => {
+  it('steht vor dem ersten und nach dem letzten Schritt still', () => {
+    expect(stepProgress(showcaseScenes, 0)).toBe(0)
+    expect(stepProgress(showcaseScenes, 46_000)).toBe(0)
+    expect(stepProgress(showcaseScenes, 128_000)).toBe(1)
+    expect(stepProgress(showcaseScenes, 181_000)).toBe(1)
+  })
+
+  it('läuft über das Schritt-Fenster von null nach eins', () => {
+    expect(stepProgress(showcaseScenes, 87_000)).toBeCloseTo(0.5, 5)
   })
 })
 
 describe('stepStops', () => {
-  it('setzt jede Station auf die Mitte der Szene, die den Schritt eröffnet', () => {
+  it('setzt jede Station auf den Beginn ihres Schritts', () => {
     const stops = stepStops(showcaseScenes)
 
-    // sensor (messen) läuft 46_000–60_000, map (verstehen) 72_000–86_000,
-    // planning (handeln) 100_000–112_000 — jeweils bezogen auf 182_000ms
-    // Gesamtlauf.
-    expect(stops.messen).toBeCloseTo(53_000 / 182_000, 5)
-    expect(stops.verstehen).toBeCloseTo(79_000 / 182_000, 5)
-    expect(stops.handeln).toBeCloseTo(106_000 / 182_000, 5)
+    // messen beginnt bei 46_000, verstehen bei 72_000, handeln bei 100_000 —
+    // jeweils bezogen auf das Fenster 46_000–128_000.
+    expect(stops.messen).toBe(0)
+    expect(stops.verstehen).toBeCloseTo(26_000 / 82_000, 5)
+    expect(stops.handeln).toBeCloseTo(54_000 / 82_000, 5)
+  })
+
+  it('erreicht jede Station genau dann, wenn ihr Schritt anläuft', () => {
+    const stops = stepStops(showcaseScenes)
+
+    for (const [step, startMs] of [
+      ['verstehen', 72_000],
+      ['handeln', 100_000],
+    ] as const) {
+      expect(stepProgress(showcaseScenes, startMs)).toBeCloseTo(stops[step], 5)
+      expect(stepProgress(showcaseScenes, startMs - 1)).toBeLessThan(stops[step])
+    }
   })
 
   it('liefert für jeden Schritt einen Wert zwischen null und eins', () => {
     const stops = stepStops(showcaseScenes)
 
     for (const step of STEP_ORDER) {
-      expect(stops[step]).toBeGreaterThan(0)
+      expect(stops[step]).toBeGreaterThanOrEqual(0)
       expect(stops[step]).toBeLessThan(1)
     }
   })
@@ -94,7 +118,8 @@ describe('stepStops', () => {
 
     const stops = stepStops(stretched)
 
-    expect(stops.messen).toBeCloseTo((46_000 + ((14 + 20) / 2) * 1000) / (182_000 + 20_000), 5)
+    // verstehen beginnt jetzt bei 92_000, das Fenster läuft 46_000–148_000.
+    expect(stops.verstehen).toBeCloseTo(46_000 / 102_000, 5)
   })
 })
 

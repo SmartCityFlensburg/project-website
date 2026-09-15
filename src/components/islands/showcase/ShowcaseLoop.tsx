@@ -12,9 +12,9 @@ import {
   buildTimeline,
   inLastMs,
   leavingOf,
-  loopProgress,
   previousOf,
   sceneAt,
+  stepProgress,
   type TimelineEntry,
 } from '../../../lib/showcase/timeline'
 import { useT } from '../../../i18n/useT'
@@ -93,6 +93,12 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
   // Faded, not unmounted: a corner that pops in at a scene boundary is the
   // one cut left in a loop that otherwise dissolves everything.
   const hiddenChrome = new Set(current.scene.hideChrome ?? [])
+  // The tour path belongs to the three steps and to nothing else. On the
+  // harbour, the photographs and the closing slide there is no step to be at,
+  // so it fades out rather than parking its point past the last station.
+  if (!current.scene.step) {
+    hiddenChrome.add('tour')
+  }
   const chromeFade = (element: ChromeElement): CSSProperties => ({
     opacity: hiddenChrome.has(element) ? 0 : 1,
   })
@@ -179,7 +185,7 @@ function LoopBody({ elapsedMs }: { elapsedMs: number }) {
         className="showcase-act-fade transition-opacity duration-[1200ms]"
         style={chromeFade('tour')}
       >
-        <TourPath progress={loopProgress(showcaseScenes, elapsedMs)} dark={onDarkPlate} />
+        <TourPath progress={stepProgress(showcaseScenes, elapsedMs)} dark={onDarkPlate} />
       </div>
     </div>
   )

@@ -7,7 +7,7 @@ interface Props {
   dark: boolean
 }
 
-// Where each step's scene actually runs on the timeline, not a hand-picked
+// Where each step's scenes actually run on the timeline, not a hand-picked
 // guess: a changed scene duration moves the stop with it.
 const STOP_AT = stepStops(showcaseScenes)
 
@@ -17,8 +17,11 @@ export default function TourPath({ progress, dark }: Props) {
   const active = dark ? '#E8EBCC' : '#4C7741'
   const idle = dark ? '#E8EBCC70' : '#8B7355'
 
+  // Wider inset than the rest of the chrome: the first station sits at the very
+  // start of the line with its label centred under it, so the line needs room to
+  // its left for that label to stay inside the frame.
   return (
-    <div className="pointer-events-none absolute inset-x-24 bottom-10">
+    <div className="pointer-events-none absolute inset-x-40 bottom-16">
       <div
         className="showcase-act-fade relative h-px w-full transition-colors duration-[1200ms]"
         style={{ backgroundColor: line }}

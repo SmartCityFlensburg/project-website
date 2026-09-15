@@ -35,9 +35,21 @@ export function sceneAt(timeline: TimelineEntry[], elapsedMs: number): TimelineE
   )
 }
 
-export function loopProgress(scenes: Scene[], elapsedMs: number): number {
-  const totalMs = totalDurationMs(scenes)
-  return intoLoop(totalMs, elapsedMs) / totalMs
+// The stretch of the loop the tour path is about: from the first scene that
+// carries a step to the last. The scenes around it — the harbour, the
+// photographs, the closing slide — belong to no step, and a point that keeps
+// travelling through them arrives nowhere.
+export function stepWindow(scenes: Scene[]): { startMs: number; endMs: number } {
+  const stepped = buildTimeline(scenes).filter((entry) => entry.scene.step)
+
+  return { startMs: stepped[0].startMs, endMs: stepped[stepped.length - 1].endMs }
+}
+
+export function stepProgress(scenes: Scene[], elapsedMs: number): number {
+  const { startMs, endMs } = stepWindow(scenes)
+  const position = intoLoop(totalDurationMs(scenes), elapsedMs)
+
+  return Math.min(1, Math.max(0, (position - startMs) / (endMs - startMs)))
 }
 
 export function previousOf(timeline: TimelineEntry[], entry: TimelineEntry): TimelineEntry {
@@ -80,16 +92,18 @@ export function leavingOf(
   return since < fadeMs ? previousOf(timeline, current) : null
 }
 
-// The tour path marks each step where its content actually runs, not at even
-// thirds: the point has to arrive at a stop while that step is on screen.
+// A stop sits where its step begins, not at an even third and not in the middle
+// of it: the point reaches the station in the same frame the scene puts the
+// step's name on screen. Anywhere else the path and the eyebrow disagree about
+// which step is running.
 export function stepStops(scenes: Scene[]): Record<Step, number> {
-  const timeline = buildTimeline(scenes)
-  const totalMs = totalDurationMs(scenes)
+  const { startMs, endMs } = stepWindow(scenes)
   const stops = {} as Record<Step, number>
 
-  for (const entry of timeline) {
-    if (entry.scene.step && !(entry.scene.step in stops)) {
-      stops[entry.scene.step] = (entry.startMs + entry.endMs) / 2 / totalMs
+  for (const entry of buildTimeline(scenes)) {
+    const step = entry.scene.step
+    if (step && !(step in stops)) {
+      stops[step] = (entry.startMs - startMs) / (endMs - startMs)
     }
   }
 

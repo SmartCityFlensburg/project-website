@@ -56,6 +56,7 @@ export default defineConfig({
   },
   fonts: [
     localFont('Lato', '--font-lato-face', {
+      300: 'lato-300.woff2',
       400: 'lato-400.woff2',
       600: 'lato-600.woff2',
       700: 'lato-700.woff2',

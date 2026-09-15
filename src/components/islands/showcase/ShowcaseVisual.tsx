@@ -1,13 +1,8 @@
 import { useState, type ReactNode } from 'react'
-import LottiePlayer from '../LottiePlayer'
-import cableAnimation from '../../../json/cableAnimation.json'
+import CoverageMap from './CoverageMap'
 import { showcaseClipBaseUrl } from '../../../lib/runtimeEnv'
 import { panOver } from '../../../lib/showcase/delay'
 import type { PanVariant, Visual } from '../../../data/showcase'
-
-const LOTTIE = {
-  cable: cableAnimation,
-}
 
 const photos = import.meta.glob<{ default: { src: string } }>(
   '../../../assets/photos/*.{jpg,png}',
@@ -171,16 +166,8 @@ export default function ShowcaseVisual({ visual, seconds }: { visual: Visual; se
     case 'image':
       return <PannedImage name={visual.asset} seconds={seconds} pan={visual.pan} />
 
-    case 'lottie':
-      return (
-        <LottiePlayer
-          animationData={LOTTIE[visual.name]}
-          autoplay
-          loop
-          aria-hidden="true"
-          className="showcase-media-out h-full w-full"
-        />
-      )
+    case 'coverage':
+      return <CoverageMap />
 
     case 'video':
       return <ShowcaseVideo visual={visual} seconds={seconds} />

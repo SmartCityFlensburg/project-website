@@ -159,6 +159,96 @@
     showcase-lift 700ms var(--ease-spring-settle) var(--showcase-outro-at, 1000000s) forwards !important;
 }
 
+/* The LoRaWAN slide's map of the state network. The coast draws itself first,
+   then each gateway lights up and opens its cell underneath, until the cells
+   have overlapped into one field. Three hundred and sixty of them cannot each
+   carry a class, so every gateway's moment arrives inline through
+   --showcase-delay, the same way a scene's text staggers its build; the
+   durations come down once from the svg, which is why they are read from
+   inherited properties rather than written here. */
+@keyframes showcase-coast-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Paired with pathLength="1" on the path, so the mainland and a hallig finish
+   drawing together however far apart their real perimeters are. */
+.showcase-coast {
+  stroke-dasharray: 1;
+  animation: showcase-coast-draw var(--showcase-coast-duration, 1500ms) ease-out
+    calc(var(--showcase-layer-delay, 0ms) + var(--showcase-delay, 0ms)) both !important;
+}
+
+@keyframes showcase-cell-open {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.showcase-cell {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: showcase-cell-open var(--showcase-cell-duration, 1400ms) var(--ease-spring-settle)
+    calc(var(--showcase-layer-delay, 0ms) + var(--showcase-delay, 0ms)) both !important;
+}
+
+/* Overshoots on the way in. A gateway coming up is the one moment on this
+   slide with a hard edge, and without the overshoot three hundred dots simply
+   appearing reads as a still image that was loaded late. */
+@keyframes showcase-gateway-light {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.showcase-gateway {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: showcase-gateway-light var(--showcase-gateway-duration, 500ms) ease-out
+    calc(var(--showcase-layer-delay, 0ms) + var(--showcase-delay, 0ms)) both !important;
+}
+
+/* Flensburg's ring, once the field has closed around it. It repeats for the
+   rest of the scene: after the build is over the map would otherwise stand
+   perfectly still for five seconds, which on a booth monitor reads as a
+   frozen player. */
+@keyframes showcase-anchor-ping {
+  from {
+    opacity: 0.5;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+.showcase-anchor-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: showcase-anchor-ping 2600ms ease-out
+    calc(var(--showcase-layer-delay, 0ms) + var(--showcase-delay, 0ms)) infinite !important;
+}
+
 /* An exhibit empties before its layer hands over: the media inside the frame
    fades on the scene's own outro, so the white card is already blank when the
    layer dissolves. Without it two dense app recordings lie on top of each other

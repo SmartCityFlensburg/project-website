@@ -24,13 +24,13 @@ export type SceneId =
   | 'demo'
 
 export type Visual =
-  | { kind: 'lottie'; name: 'cable' }
   | { kind: 'image'; asset: string; pan?: PanVariant }
   | { kind: 'video'; clip: string; poster: string }
   | { kind: 'tour' }
   | { kind: 'partners' }
   | { kind: 'forde' }
   | { kind: 'demo' }
+  | { kind: 'coverage' }
 
 export type ChromeElement = 'logo' | 'qr' | 'tour'
 
@@ -132,7 +132,7 @@ export const showcaseScenes: Scene[] = [
     seconds: 12,
     step: 'messen',
     side: 'right',
-    visual: { kind: 'lottie', name: 'cable' },
+    visual: { kind: 'coverage' },
   },
   {
     id: 'map',

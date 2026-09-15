@@ -159,6 +159,23 @@
     showcase-lift 700ms var(--ease-spring-settle) var(--showcase-outro-at, 1000000s) forwards !important;
 }
 
+/* An exhibit empties before its layer hands over: the media inside the frame
+   fades on the scene's own outro, so the white card is already blank when the
+   layer dissolves. Without it two dense app recordings lie on top of each other
+   for a full second and neither of them is readable. */
+@keyframes showcase-media-dim {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.showcase-media-out {
+  animation: showcase-media-dim 700ms ease-in var(--showcase-outro-at, 1000000s) forwards !important;
+}
+
 /* The scene layers themselves. The leaving one dissolves on top of the new
    one. Pure opacity, no travel: a photo that moves exposes its edge, and the
    text has already lifted off on its own. A scene following one of the webgl

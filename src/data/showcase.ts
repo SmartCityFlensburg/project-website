@@ -42,7 +42,12 @@ export interface Scene {
   step?: Step
   /** Only the scene that opens a step carries the numbered label. */
   opensStep?: boolean
-  /** Which side the visual sits on in the exhibit layout. */
+  /**
+   * Which side the visual sits on in the exhibit layout. The screencast scenes
+   * all keep the same side: a frame that changes place between two consecutive
+   * recordings turns the dissolve into two app windows drifting across each
+   * other. The full-bleed photo scenes between the acts carry the variety.
+   */
   side?: 'left' | 'right'
   /**
    * Persistent elements to hide for this scene. The closing slide replaces the
@@ -136,7 +141,7 @@ export const showcaseScenes: Scene[] = [
     seconds: 14,
     step: 'verstehen',
     opensStep: true,
-    side: 'left',
+    side: 'right',
     visual: { kind: 'video', clip: 'showcase-karte.mp4', poster: 'v0.3.0-karte-uebersicht.png' },
   },
   {
@@ -155,7 +160,7 @@ export const showcaseScenes: Scene[] = [
     seconds: 12,
     step: 'handeln',
     opensStep: true,
-    side: 'left',
+    side: 'right',
     visual: {
       kind: 'video',
       clip: 'showcase-einsatzplanung.mp4',

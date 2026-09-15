@@ -75,7 +75,7 @@ function ExhibitMedia({ children }: { children: ReactNode }) {
         className="relative w-full max-w-[68rem] rounded-[1.5rem] bg-white p-3 ring-1 ring-[#2D4A27]/10"
         style={{ boxShadow: '0 2rem 4.5rem -1.75rem rgba(45,74,39,0.4)' }}
       >
-        <div className="aspect-video w-full overflow-hidden rounded-[1.05rem]">
+        <div className="showcase-media-out aspect-video w-full overflow-hidden rounded-[1.05rem]">
           {children}
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function ShowcaseVisual({ visual, seconds }: { visual: Visual; se
           autoplay
           loop
           aria-hidden="true"
-          className="h-full w-full"
+          className="showcase-media-out h-full w-full"
         />
       )
 

@@ -82,33 +82,138 @@ export function cameraAt(seconds: number): CameraFrame {
   }
 }
 
+export interface CanopyLobe {
+  /** Offset from the top of the trunk, in canopy radii. */
+  at: Vec3
+  /** Radius, also in canopy radii. */
+  radius: number
+  /** Index into the three canopy greens, lit to shaded. */
+  tone: number
+}
+
+export interface TreeLimb {
+  /** Where the limb leaves the trunk, as a fraction of the trunk's height. */
+  at: number
+  /** Which way it heads, about y. */
+  turn: number
+  /** Lean off vertical. */
+  lean: number
+  length: number
+  radius: number
+}
+
 export interface QuayTree {
   x: number
   z: number
   height: number
+  trunkRadius: number
   canopyRadius: number
   phase: number
-  dark: boolean
+  /** A standing lean, added to the sway. No street tree grows plumb. */
+  tilt: number
+  limbs: readonly TreeLimb[]
+  canopy: readonly CanopyLobe[]
 }
 
 // Spread by the golden angle so the spacing, heights and sway phases vary
 // without a hand-kept table and without any two neighbours matching.
 const GOLDEN = 2.399963
 
+/**
+ * Three limbs leaving the trunk on different bearings. Their lower stretch
+ * shows below the foliage, which is what stops a crown from reading as a ball
+ * balanced on a pole.
+ */
+function limbsOf(index: number, height: number, trunkRadius: number): readonly TreeLimb[] {
+  return Array.from({ length: 3 }, (_, k) => ({
+    at: 0.54 + k * 0.13,
+    turn: index * GOLDEN + (k * TAU) / 3 + Math.sin(index + k) * 0.4,
+    lean: 0.72 - k * 0.15,
+    length: height * (0.34 - k * 0.05),
+    radius: trunkRadius * (0.46 - k * 0.07),
+  }))
+}
+
+const CROWN_LOBES = 6
+
+/**
+ * A core lobe with five smaller ones set around and above it. Turned off the
+ * golden angle per tree, so no two crowns along the avenue share a silhouette.
+ */
+function crownOf(index: number, shaded: boolean): readonly CanopyLobe[] {
+  const deepen = shaded ? 1 : 0
+  const lobes: CanopyLobe[] = [{ at: [0, 0.3, 0], radius: 0.9, tone: 1 + deepen }]
+
+  for (let k = 0; k < CROWN_LOBES - 1; k++) {
+    const turn = index * GOLDEN + (k * TAU) / (CROWN_LOBES - 1)
+    const reach = 0.62 + Math.sin(index * 1.3 + k * 1.9) * 0.13
+    const lift = 0.5 + Math.cos(index * 0.7 + k * 1.3) * 0.38
+    const toward = [Math.cos(turn) * reach, lift, Math.sin(turn) * reach * 0.72] as const
+    // Shading the crown by hand beats waiting for a second light: lambert alone
+    // flattens foliage this small into one green mass. The morning sun comes up
+    // the Förde from +x, so a lobe reaching that way and sitting high in the
+    // crown catches it. The camera's side, +z, counts too — a lobe in front of
+    // the crown that takes a back lobe's tone reads as a hole punched in it.
+    const lit = toward[0] * 0.5 + toward[2] * 0.4 + (lift - 0.5) * 0.9
+
+    lobes.push({
+      at: toward,
+      radius: 0.44 + Math.cos(index * 1.7 + k * 2.3) * 0.1,
+      tone: Math.min(2, (lit > 0.28 ? 0 : lit > -0.1 ? 1 : 2) + deepen),
+    })
+  }
+
+  return lobes
+}
+
 // Close spacing and a modest crown: an avenue has to read as a row, and three
 // oversized trees in frame hide the town they are supposed to stand in.
 export const quayTrees: readonly QuayTree[] = Array.from({ length: 21 }, (_, i) => {
   const wobble = Math.sin(i * GOLDEN)
+  const height = 7.2 + wobble * 0.9
+  const trunkRadius = 0.42 + wobble * 0.06
 
   return {
     x: -90 + i * 9 + wobble * 1.6,
     z: -8 + Math.sin(i * 1.7) * 2.4,
-    height: 7.2 + wobble * 0.9,
+    height,
+    trunkRadius,
     canopyRadius: 3.4 + Math.cos(i * 1.31) * 0.5,
     phase: (i * GOLDEN) % TAU,
-    dark: i % 3 === 1,
+    tilt: Math.sin(i * 2.9) * 0.04,
+    limbs: limbsOf(i, height, trunkRadius),
+    canopy: crownOf(i, i % 3 === 1),
   }
 })
+
+// The pit each tree stands in: open soil inside a stone rim, the size a street
+// tree gets in a paved promenade. It is also the thing the project measures.
+// The soil stands a little proud of the rim, or the rim's own top face closes
+// over it and the pit reads as a manhole cover.
+export const treePit = {
+  radius: 2.1,
+  kerbWidth: 0.3,
+  kerbHeight: 0.19,
+  soilHeight: 0.24,
+  /** How far the whole thing is set into the promenade. */
+  sink: 0.12,
+} as const
+
+/** How tall a house's stone base stands before the first row of windows. */
+export const HOUSE_PLINTH = 0.85
+
+// Lime plaster in the tones the harbour front is actually painted in, with one
+// brick red among them. Neighbours never share a colour, which is what keeps
+// the row from reading as one long wall.
+export const houseTones = ['#E4E2D6', '#DCD2C0', '#E9E6DC', '#CFBCA8', '#D7DBD3'] as const
+
+export const roofTones = ['#9A5F4A', '#8A503E', '#A66C54', '#7C4738'] as const
+
+export interface Chimney {
+  /** Offset along the ridge from the house's centre. */
+  at: number
+  height: number
+}
 
 export interface GableHouse {
   x: number
@@ -117,6 +222,15 @@ export interface GableHouse {
   depth: number
   wallHeight: number
   roofHeight: number
+  /** The Flensburg merchant front: a stepped gable standing proud of the roof. */
+  stepped: boolean
+  /** Indices into houseTones and roofTones. */
+  wallTone: number
+  roofTone: number
+  /** Window rows above the plinth, and window columns across the facade. */
+  floors: number
+  bays: number
+  chimneys: readonly Chimney[]
 }
 
 // The harbour front: narrow gabled houses standing shoulder to shoulder, which
@@ -124,16 +238,38 @@ export interface GableHouse {
 export const quayHouses: readonly GableHouse[] = Array.from({ length: 24 }, (_, i) => {
   const wobble = Math.sin(i * GOLDEN)
   const gap = Math.cos(i * 0.9) * 1.2
+  const width = 8.2 + wobble * 1.4
+  const wallHeight = 9.5 + wobble * 2.6
 
   return {
     x: -118 + i * 10.2 + gap,
     z: -196 + Math.sin(i * 2.2) * 6,
-    width: 8.2 + wobble * 1.4,
+    width,
     depth: 9,
-    wallHeight: 9.5 + wobble * 2.6,
+    wallHeight,
     roofHeight: 5 + Math.cos(i * GOLDEN) * 1.4,
+    stepped: i % 4 === 1,
+    wallTone: (i * 3) % houseTones.length,
+    roofTone: (i * 2 + 1) % roofTones.length,
+    floors: Math.max(2, Math.round((wallHeight - HOUSE_PLINTH) / 3.1)),
+    bays: width > 8.4 ? 3 : 2,
+    chimneys: Array.from({ length: i % 3 === 0 ? 2 : 1 }, (_, k) => ({
+      at: (k === 0 ? -1 : 1) * (2.1 + Math.abs(wobble) * 0.8),
+      height: 1.7 + Math.abs(Math.cos(i * 1.3 + k)) * 0.9,
+    })),
   }
 })
+
+// The bank the harbour front stands on. It reaches past the outermost house so
+// the row never ends in open water, and its top clears the wave crests.
+export const farShore = {
+  width: 560,
+  depth: 140,
+  centerZ: -252,
+  top: 2.3,
+  /** Carried well below the waterline, so no swell undercuts the bank. */
+  height: 9,
+} as const
 
 export interface Spire {
   x: number
@@ -267,6 +403,18 @@ export const fordeColors = {
   // one warm note that keeps the town off the blue.
   roof: '#9A5F4A',
   spire: '#5F8A6E',
+  housePlinth: '#B3ADA0',
+  // The fascia under the eaves. A dark line there is what parts roof from wall
+  // at this distance, where the shadow itself is far too soft to do it.
+  houseEaves: '#8C8578',
+  houseRidge: '#6E4335',
+  windowGlass: '#4F6169',
+  shopfront: '#3E4E55',
+  chimney: '#8C6552',
+  // A shade cooler and darker than the near promenade, or the two grounds read
+  // as one plane and the Förde between them loses its depth.
+  shore: '#9EA694',
+  shoreEdge: '#6E7665',
   hull: '#2E4438',
   // Weathered spruce, not near-black: the masts were the darkest thing on
   // screen and took the skyline away from the town.
@@ -275,7 +423,13 @@ export const fordeColors = {
   sail: '#F0EADA',
   sailShaded: '#DED6C2',
   treeTrunk: '#7A5F46',
+  // The limbs sit against the crown rather than against the sky, so they carry
+  // a touch more shade than the trunk or they wash out inside the foliage.
+  treeLimb: '#6B5340',
+  treeCanopyLit: '#86C25C',
   treeCanopy: '#63A94A',
   treeCanopyDark: '#3E8038',
+  treePitSoil: '#8A7358',
+  treePitKerb: '#A8A695',
   fog: '#D5E3E4',
 } as const

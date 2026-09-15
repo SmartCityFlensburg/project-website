@@ -2,6 +2,18 @@ export type Act = 'lage' | 'boden' | 'software' | 'fahrt'
 export type Step = 'messen' | 'verstehen' | 'handeln'
 export type Layout = 'statement' | 'exhibit' | 'photo'
 
+export type SceneId =
+  | 'title'
+  | 'quote'
+  | 'water'
+  | 'sensor'
+  | 'lorawan'
+  | 'map'
+  | 'history'
+  | 'planning'
+  | 'tour'
+  | 'open-source'
+
 export type Visual =
   | { kind: 'lottie'; name: 'logo' | 'cable' | 'dashboard' }
   | { kind: 'image'; asset: string }
@@ -10,7 +22,7 @@ export type Visual =
   | { kind: 'partners' }
 
 export interface Scene {
-  id: string
+  id: SceneId
   act: Act
   layout: Layout
   seconds: number
@@ -116,3 +128,10 @@ export const showcaseScenes: Scene[] = [
 ]
 
 export const STEP_ORDER: Step[] = ['messen', 'verstehen', 'handeln']
+
+// The lage and fahrt acts run on the deep-green plate; boden and software on
+// the light one. Shared so the persistent chrome and the scene body never
+// disagree about which plate is showing.
+export function isDarkAct(act: Act): boolean {
+  return act === 'lage' || act === 'fahrt'
+}

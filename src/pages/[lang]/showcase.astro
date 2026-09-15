@@ -6,6 +6,7 @@ import { currentLanguage } from '../../i18n/languages'
 import { languagePaths } from '../../lib/languagePaths'
 import { pickStrings } from '../../i18n/pick'
 import { showcaseScenes } from '../../data/showcase'
+import { withoutMissing } from '../../lib/showcase/text'
 
 export const getStaticPaths = languagePaths
 
@@ -26,7 +27,7 @@ const keys = [
   'demo.url',
 ] as TranslationKey<'showcase'>[]
 
-const strings = pickStrings(language, 'showcase', keys)
+const strings = withoutMissing(pickStrings(language, 'showcase', keys))
 ---
 
 <ShowcaseLayout title={t('meta.title')} description={t('meta.description')} language={language}>

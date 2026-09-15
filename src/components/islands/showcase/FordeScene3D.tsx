@@ -11,12 +11,14 @@ import {
   Matrix4,
   PlaneGeometry,
   Quaternion,
+  RingGeometry,
   Shape,
   ShapeGeometry,
   Vector3,
   type BufferGeometry,
   type Group,
   type Mesh,
+  type MeshBasicMaterial,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {
@@ -34,6 +36,8 @@ import {
   quayTrees,
   roofTones,
   scene as fordeScene,
+  sensor,
+  signalProgress,
   spires,
   swayAngle,
   TOWER_STOREY,
@@ -1196,6 +1200,99 @@ function Avenue() {
   )
 }
 
+const antennaTip = sensor.postHeight + sensor.housing[1] + sensor.antennaHeight
+
+const sensorGeometry = merged([
+  painted(
+    unitPit,
+    placed(
+      [0, sensor.postHeight / 2, 0],
+      [sensor.postRadius, sensor.postHeight, sensor.postRadius],
+    ),
+    fordeColors.sensorPost,
+  ),
+  painted(
+    unitBox,
+    placed([0, sensor.postHeight + sensor.housing[1] / 2, 0], sensor.housing),
+    fordeColors.sensorHousing,
+  ),
+  // A dark band round the housing, or it reads as a white box on a stick.
+  painted(
+    unitBox,
+    placed(
+      [0, sensor.postHeight + sensor.housing[1] * 0.3, 0],
+      [sensor.housing[0] * 1.04, sensor.housing[1] * 0.16, sensor.housing[2] * 1.04],
+    ),
+    fordeColors.sensorPost,
+  ),
+  painted(
+    unitPit,
+    placed(
+      [0, antennaTip - sensor.antennaHeight / 2, 0],
+      [sensor.antennaRadius, sensor.antennaHeight, sensor.antennaRadius],
+    ),
+    fordeColors.sensorPost,
+  ),
+])
+
+// One open ring, facing the camera. Each pulse is this ring scaled out from the
+// antenna tip and faded as it goes.
+const unitSignal = new RingGeometry(
+  0.84,
+  1,
+  28,
+  1,
+  Math.PI / 2 - sensor.signal.arc / 2,
+  sensor.signal.arc,
+)
+
+function Sensor({ tree, phase }: { tree: QuayTree; phase: number }) {
+  const rings = useRef<(Mesh | null)[]>([])
+  const foot: Vec3 = [
+    tree.x + sensor.offset[0],
+    quay.top - treePit.sink + treePit.soilHeight,
+    tree.z + sensor.offset[1],
+  ]
+
+  useFrame(({ clock }) => {
+    const seconds = clock.getElapsedTime()
+
+    rings.current.forEach((ring, index) => {
+      if (ring) {
+        const progress = signalProgress(index, seconds, phase)
+        const radius = sensor.signal.from + (sensor.signal.to - sensor.signal.from) * progress
+        ring.scale.set(radius, radius, 1)
+        ;(ring.material as MeshBasicMaterial).opacity = (1 - progress) ** 1.6 * 0.9
+      }
+    })
+  })
+
+  return (
+    <group position={foot}>
+      <mesh geometry={sensorGeometry}>
+        <meshLambertMaterial vertexColors flatShading />
+      </mesh>
+      {Array.from({ length: sensor.signal.rings }, (_, index) => (
+        <mesh
+          key={index}
+          ref={(node) => {
+            rings.current[index] = node
+          }}
+          geometry={unitSignal}
+          position={[0, antennaTip, 0]}
+        >
+          <meshBasicMaterial
+            color={fordeColors.sensorSignal}
+            transparent
+            depthWrite={false}
+            side={DoubleSide}
+          />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 // Flattened spheres in a row, the same vocabulary as the canopies. They carry
 // fog={false} because they sit above the haze, not in it.
 const PUFFS = [
@@ -1329,6 +1426,9 @@ function FordeModel({ active }: { active: boolean }) {
         <meshLambertMaterial color={fordeColors.quayEdge} />
       </mesh>
       <Avenue />
+      {sensor.trees.map((index, k) => (
+        <Sensor key={index} tree={quayTrees[index]} phase={k / sensor.trees.length} />
+      ))}
     </>
   )
 }

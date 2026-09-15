@@ -10,11 +10,14 @@ import {
   scene,
   spires,
   limbTip,
+  sensor,
+  signalProgress,
   swayAngle,
   waveHeight,
   wind,
   water,
   quayTrees,
+  treePit,
 } from './showcaseForde'
 
 describe('cloudX', () => {
@@ -219,5 +222,33 @@ describe('quayTrees', () => {
 
   test('uses every canopy palette', () => {
     expect(new Set(quayTrees.map((tree) => tree.shade)).size).toBe(3)
+  })
+})
+
+describe('sensor', () => {
+  test('stands inside its tree pit and clear of the trunk', () => {
+    const fromTrunk = Math.hypot(...sensor.offset)
+    expect(fromTrunk).toBeLessThan(treePit.radius - treePit.kerbWidth)
+
+    for (const index of sensor.trees) {
+      expect(quayTrees[index]).toBeDefined()
+      expect(fromTrunk).toBeGreaterThan(quayTrees[index].trunkRadius * 1.6)
+    }
+  })
+
+  test('lets the two sensors pulse out of step', () => {
+    expect(signalProgress(0, 4, 0)).not.toBeCloseTo(signalProgress(0, 4, 0.5), 3)
+  })
+
+  test('keeps every ring on its way out and staggers them', () => {
+    for (let t = 0; t < 30; t += 0.31) {
+      const progress = Array.from({ length: sensor.signal.rings }, (_, i) => signalProgress(i, t))
+
+      for (const p of progress) {
+        expect(p).toBeGreaterThanOrEqual(0)
+        expect(p).toBeLessThan(1)
+      }
+      expect(new Set(progress.map((p) => p.toFixed(3))).size).toBe(sensor.signal.rings)
+    }
   })
 })

@@ -389,6 +389,47 @@ export const treePit = {
   sink: 0.12,
 } as const
 
+const nearestTree = quayTrees.reduce(
+  (nearest, tree, index) => (Math.abs(tree.x) < Math.abs(quayTrees[nearest].x) ? index : nearest),
+  0,
+)
+
+// The one thing on screen the project actually puts in the ground: soil
+// sensors at the foot of a tree, sending. One stands in the pit of the tree
+// nearest the middle of the camera's drift, so the drift never leaves it
+// behind, and one three trees to starboard, so it reads as a network and not
+// as a one-off.
+export const sensor = {
+  trees: [nearestTree, nearestTree + 3] as const,
+  /** Where it stands in the pit, from the trunk: to port and toward the camera. */
+  offset: [-1.15, 0.8] as const,
+  postRadius: 0.07,
+  postHeight: 0.5,
+  /** The transmitter box on the post: width, height, depth. */
+  housing: [0.3, 0.22, 0.2] as Vec3,
+  antennaRadius: 0.018,
+  antennaHeight: 0.34,
+  signal: {
+    rings: 3,
+    seconds: 2.8,
+    /** Radius a ring starts and ends at, in metres from the antenna tip. */
+    from: 0.16,
+    to: 1.7,
+    /** How much of the circle a ring covers. Open at the bottom: it is sending up and out. */
+    arc: 1.9,
+  },
+} as const
+
+/**
+ * How far along its way out ring `index` is at a moment, 0 at the antenna, 1
+ * gone. `phase` sets the sensors apart, or the whole avenue pulses in step.
+ */
+export function signalProgress(index: number, seconds: number, phase = 0): number {
+  const { rings, seconds: period } = sensor.signal
+  const at = seconds / period + index / rings + phase
+  return at - Math.floor(at)
+}
+
 /** How tall a house's stone base stands before the first row of windows. */
 export const HOUSE_PLINTH = 0.85
 
@@ -838,5 +879,10 @@ export const fordeColors = {
   treeCanopyDeep: '#2E6B33',
   treePitSoil: '#8A7358',
   treePitKerb: '#A8A695',
+  sensorPost: '#4A524D',
+  // A pale housing, the way field electronics are cased, and the one thing in
+  // the pit that is not brown or green, so the eye finds it.
+  sensorHousing: '#ECE8DC',
+  sensorSignal: '#F4F7EC',
   fog: '#D5E3E4',
 } as const

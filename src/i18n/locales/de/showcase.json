@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "title": "Green Ecolution",
+    "description": "Smartes Grünflächenmanagement für lebenswerte Städte."
+  },
+  "steps": {
+    "messen": "Messen",
+    "verstehen": "Verstehen",
+    "handeln": "Handeln"
+  },
+  "demo": {
+    "label": "Live-Demo ausprobieren",
+    "url": "demo.green-ecolution.de"
+  },
+  "scenes": {
+    "title": {
+      "statement": "Smartes Grünflächenmanagement für lebenswerte Städte",
+      "body": "Messen. Verstehen. Handeln."
+    },
+    "quote": {
+      "statement": "Es wird auf gut Glück bewässert.",
+      "body": "TBZ-Mitarbeiter, Flensburg"
+    },
+    "water": {
+      "statement": "50.000 Liter Wasser pro Jahr",
+      "body": "bringt Flensburg für seine Stadtbäume aus, ganz ohne Datengrundlage.",
+      "source": "Quelle: TBZ Flensburg"
+    },
+    "sensor": {
+      "eyebrow": "01 · Erfassen",
+      "statement": "Der Boden sagt, wann gegossen wird.",
+      "body": "Bodenfeuchte, Temperatur und Bodenwasserspannung in drei Tiefen, gemessen in 30, 60 und 90 Zentimetern."
+    },
+    "lorawan": {
+      "statement": "Energieeffizient über LoRaWAN",
+      "body": "Green Ecolution setzt auf das landesweite Netz Schleswig-Holsteins mit über 420 Gateways, statt eigene Netze zu betreiben.",
+      "source": "3+ Jahre Batterielaufzeit"
+    },
+    "map": {
+      "eyebrow": "02 · Analysieren",
+      "statement": "Ein Blick auf die Karte genügt.",
+      "body": "Ein Ampelsystem zeigt, welche Grünflächen Wasser brauchen."
+    },
+    "history": {
+      "statement": "Zeitverläufe statt Bauchgefühl",
+      "body": "Echte Messwerte aus dem Boden, seit Mai 2026 an zehn Standorten in Flensburg."
+    },
+    "planning": {
+      "eyebrow": "03 · Ausführen",
+      "statement": "Einsätze zusammenstellen",
+      "body": "Fahrzeuge, Teams und Gruppen zu einem Einsatzplan verbinden."
+    },
+    "tour": {
+      "statement": "Optimierte Bewässerungstouren",
+      "body": "Wasserkapazität, Nachfüllpunkte, Fahrzeuggröße und Zufahrtsrestriktionen fließen in die Route ein. Export als GPX für handelsübliche Navigationsgeräte.",
+      "source": "Routenoptimierung mit Streamlet"
+    },
+    "open-source": {
+      "statement": "100 % Open Source unter AGPL-3.0",
+      "body": "Gefördert vom Land Schleswig-Holstein aus „Offene Innovation: Open Source made in SH“. Im Pilotbetrieb mit dem TBZ Flensburg.",
+      "source": "Hochschule Flensburg · PROGEEK · Smarte Grenzregion · Stadt Flensburg"
+    }
+  }
+}

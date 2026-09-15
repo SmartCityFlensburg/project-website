@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "title": "Green Ecolution",
+    "description": "Smart green space management for liveable cities."
+  },
+  "steps": {
+    "messen": "Measure",
+    "verstehen": "Understand",
+    "handeln": "Act"
+  },
+  "demo": {
+    "label": "Try the live demo",
+    "url": "demo.green-ecolution.de"
+  },
+  "scenes": {
+    "title": {
+      "statement": "Smart green space management for liveable cities",
+      "body": "Measure. Understand. Act."
+    },
+    "quote": {
+      "statement": "We water and hope for the best.",
+      "body": "TBZ staff member, Flensburg"
+    },
+    "water": {
+      "statement": "50,000 litres of water a year",
+      "body": "is what Flensburg puts on its urban trees, with no data to go on.",
+      "source": "Source: TBZ Flensburg"
+    },
+    "sensor": {
+      "eyebrow": "01 · Capture",
+      "statement": "The soil says when to water.",
+      "body": "Soil moisture, temperature and water tension at three depths, measured at 30, 60 and 90 centimetres."
+    },
+    "lorawan": {
+      "statement": "Energy-efficient over LoRaWAN",
+      "body": "Green Ecolution builds on the state-wide network of Schleswig-Holstein with more than 420 gateways instead of running its own.",
+      "source": "3+ years of battery life"
+    },
+    "map": {
+      "eyebrow": "02 · Analyse",
+      "statement": "One look at the map is enough.",
+      "body": "A traffic light system shows which green spaces need water."
+    },
+    "history": {
+      "statement": "Time series instead of gut feeling",
+      "body": "Real readings from the soil, from ten sites in Flensburg since May 2026."
+    },
+    "planning": {
+      "eyebrow": "03 · Execute",
+      "statement": "Put an operation together",
+      "body": "Combine vehicles, teams and tree groups into one watering plan."
+    },
+    "tour": {
+      "statement": "Optimised watering routes",
+      "body": "Water capacity, refill points, vehicle size and access restrictions all feed into the route. Export as GPX for standard navigation devices.",
+      "source": "Route optimisation with Streamlet"
+    },
+    "open-source": {
+      "statement": "100% open source under AGPL-3.0",
+      "body": "Funded by the state of Schleswig-Holstein through “Offene Innovation: Open Source made in SH”. In pilot operation with TBZ Flensburg.",
+      "source": "Flensburg University of Applied Sciences · PROGEEK · Smarte Grenzregion · City of Flensburg"
+    }
+  }
+}
